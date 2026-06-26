@@ -1,0 +1,26 @@
+export type Discipline =
+  | "Disk"
+  | "Kladivo"
+  | "Koule"
+  | "Posilovna"
+  | "Kardio"
+  | "Mobilita";
+
+export type TrainingSeries = {
+  id: string;
+  discipline: Discipline;
+  technique: string;
+  equipment: string;
+  marks: number[];
+  note?: string;
+};
+
+export type TrainingSession = {
+  id: string;
+  date: string;
+  title: string;
+  rpe?: number;
+  note?: string;
+  series: TrainingSeries[];
+  createdAt: string;
+};
