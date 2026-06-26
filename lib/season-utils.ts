@@ -1,10 +1,16 @@
-import { uid, formatDate } from "@/lib/training-utils";
 import { daysUntil } from "@/lib/dashboard-utils";
 import {
+  computeBestValidAttempt,
   createDefaultAttempts,
   normalizeAttempts,
 } from "@/lib/competition-utils";
-import type { Competition, CompetitionStatus, Season } from "@/types/season";
+import { uid, formatDate, getDisciplineLabel } from "@/lib/training-utils";
+import type {
+  Competition,
+  CompetitionResult,
+  CompetitionStatus,
+  Season,
+} from "@/types/season";
 
 export const SEASONS_STORAGE_KEY = "atlas-seasons";
 const LEGACY_COMPETITION_KEY = "atlas-next-competition";
@@ -19,8 +25,33 @@ export interface CompetitionPrepOption {
   label: string;
 }
 
+interface LegacyCompetitionFields {
+  disciplines?: string[];
+  implementWeight?: string;
+  implement?: string;
+  targetPerformance?: string;
+  resultLink?: string;
+  placement?: string;
+  official?: boolean;
+  attempts?: unknown;
+}
+
 function isCompetitionStatus(value: unknown): value is CompetitionStatus {
   return value === "planned" || value === "completed";
+}
+
+export function emptyCompetitionResult(discipline = "disk"): CompetitionResult {
+  return {
+    id: uid(),
+    discipline,
+    implement: "",
+    official: false,
+    placement: "",
+    resultLink: "",
+    attempts: createDefaultAttempts(),
+    bestAttempt: null,
+    notes: "",
+  };
 }
 
 export function emptyCompetition(): Competition {
@@ -29,15 +60,9 @@ export function emptyCompetition(): Competition {
     date: new Date().toISOString().slice(0, 10),
     name: "",
     location: "",
-    disciplines: [],
-    implementWeight: "",
-    targetPerformance: "",
-    notes: "",
-    resultLink: "",
-    placement: "",
-    official: false,
     status: "planned",
-    attempts: createDefaultAttempts(),
+    notes: "",
+    competitionResults: [],
   };
 }
 
@@ -50,21 +75,82 @@ export function emptySeason(year: number = new Date().getFullYear()): Season {
   };
 }
 
-export function normalizeCompetition(raw: Partial<Competition> & { id?: string }): Competition {
+export function normalizeCompetitionResult(
+  raw: Partial<CompetitionResult> & { id?: string; implementWeight?: string }
+): CompetitionResult {
+  const attempts = normalizeAttempts(raw.attempts);
+  const implement = raw.implement?.trim() ?? raw.implementWeight?.trim() ?? "";
+
+  return {
+    id: raw.id ?? uid(),
+    discipline: raw.discipline?.trim() || "disk",
+    implement,
+    official: Boolean(raw.official),
+    placement: raw.placement?.trim() ?? "",
+    resultLink: raw.resultLink?.trim() ?? "",
+    attempts,
+    bestAttempt: computeBestValidAttempt(attempts),
+    notes: typeof raw.notes === "string" ? raw.notes : "",
+  };
+}
+
+function hasLegacyResultData(raw: LegacyCompetitionFields): boolean {
+  return Boolean(
+    raw.implementWeight?.trim() ||
+      raw.implement?.trim() ||
+      raw.placement?.trim() ||
+      raw.resultLink?.trim() ||
+      raw.official ||
+      raw.targetPerformance?.trim() ||
+      (Array.isArray(raw.attempts) &&
+        raw.attempts.some((item) => {
+          const attempt = item as { status?: string; distance?: string };
+          return attempt.status === "valid" && Boolean(attempt.distance?.trim());
+        }))
+  );
+}
+
+function migrateLegacyCompetitionResults(
+  raw: Partial<Competition> & LegacyCompetitionFields
+): CompetitionResult[] {
+  if (Array.isArray(raw.competitionResults) && raw.competitionResults.length > 0) {
+    return raw.competitionResults.map((item) => normalizeCompetitionResult(item));
+  }
+
+  const legacyDisciplines = Array.isArray(raw.disciplines)
+    ? raw.disciplines.filter(Boolean)
+    : [];
+
+  if (legacyDisciplines.length === 0 && !hasLegacyResultData(raw)) {
+    return [];
+  }
+
+  const disciplines = legacyDisciplines.length > 0 ? legacyDisciplines : ["disk"];
+
+  return disciplines.map((discipline, index) =>
+    normalizeCompetitionResult({
+      discipline,
+      implement: raw.implementWeight ?? raw.implement ?? "",
+      official: raw.official,
+      placement: raw.placement,
+      resultLink: raw.resultLink,
+      attempts: index === 0 ? normalizeAttempts(raw.attempts) : createDefaultAttempts(),
+      notes: index === 0 && raw.targetPerformance?.trim() ? raw.targetPerformance.trim() : "",
+    })
+  );
+}
+
+export function normalizeCompetition(
+  raw: Partial<Competition> & LegacyCompetitionFields & { id?: string }
+): Competition {
   return {
     id: raw.id ?? uid(),
     date: raw.date ?? new Date().toISOString().slice(0, 10),
     name: raw.name?.trim() ?? "",
     location: raw.location?.trim() ?? "",
-    disciplines: Array.isArray(raw.disciplines) ? raw.disciplines.filter(Boolean) : [],
-    implementWeight: raw.implementWeight?.trim() ?? "",
-    targetPerformance: raw.targetPerformance?.trim() ?? "",
-    notes: typeof raw.notes === "string" ? raw.notes : "",
-    resultLink: raw.resultLink?.trim() ?? "",
-    placement: raw.placement?.trim() ?? "",
-    official: Boolean(raw.official),
     status: isCompetitionStatus(raw.status) ? raw.status : "planned",
-    attempts: normalizeAttempts(raw.attempts),
+    notes: typeof raw.notes === "string" ? raw.notes : "",
+    competitionResults: migrateLegacyCompetitionResults(raw),
   };
 }
 
@@ -242,4 +328,14 @@ export function getCompetitionsForDate(
   return getAllCompetitions(seasons)
     .filter((item) => item.date === iso && item.name.trim())
     .sort((a, b) => a.name.localeCompare(b.name, "cs"));
+}
+
+export function formatCompetitionDisciplinesCompact(competition: Competition): string {
+  return competition.competitionResults
+    .map((result) => getDisciplineLabel(result.discipline))
+    .join(" • ");
+}
+
+export function competitionHasOfficialResults(competition: Competition): boolean {
+  return competition.competitionResults.some((result) => result.official);
 }

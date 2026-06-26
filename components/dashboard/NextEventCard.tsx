@@ -44,11 +44,12 @@ export default function NextEventCard({ competition, onOpenSeason }: NextEventCa
         {competition.location && (
           <div className="dashboard-event-location">{competition.location}</div>
         )}
-        {competition.disciplines.length > 0 && (
+        {competition.competitionResults.length > 0 && (
           <div className="dashboard-event-disciplines">
-            {competition.disciplines.map((discipline) => (
-              <span key={discipline} className="dashboard-event-discipline">
-                {getDisciplineIcon(discipline)} {getDisciplineLabel(discipline)}
+            {competition.competitionResults.map((result, index) => (
+              <span key={result.id} className="dashboard-event-discipline">
+                {index > 0 && <span className="dashboard-event-discipline-sep"> • </span>}
+                {getDisciplineIcon(result.discipline)} {getDisciplineLabel(result.discipline)}
               </span>
             ))}
           </div>

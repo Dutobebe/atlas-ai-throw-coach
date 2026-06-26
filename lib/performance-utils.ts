@@ -98,18 +98,15 @@ function collectCompetitionEntries(seasons: Season[]): RawEntry[] {
 
   for (const season of seasons) {
     for (const competition of season.competitions) {
-      if (!competition.official) continue;
+      for (const result of competition.competitionResults) {
+        if (!result.official) continue;
 
-      const distance = getBestValidAttempt(competition);
-      if (distance === null || distance <= 0) continue;
+        const distance = getBestValidAttempt(result);
+        if (distance === null || distance <= 0) continue;
 
-      const disciplines =
-        competition.disciplines.length > 0 ? competition.disciplines : ["disk"];
-
-      for (const discipline of disciplines) {
         entries.push({
-          discipline,
-          implement: competition.implementWeight?.trim() ?? "",
+          discipline: result.discipline || "disk",
+          implement: result.implement?.trim() ?? "",
           technique: "",
           distance,
           date: competition.date,

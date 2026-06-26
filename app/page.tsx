@@ -67,6 +67,9 @@ import type { Tab, TrainingSession } from "@/types/training";
 import type { PlanPhase } from "@/types/plan";
 import type { Season } from "@/types/season";
 import type { TrainingTemplate } from "@/types/template";
+import WelcomeScreen from "@/components/welcome/WelcomeScreen";
+import AppearanceSettings from "@/components/settings/AppearanceSettings";
+import { loadWelcomeComplete, saveWelcomeComplete } from "@/lib/theme";
 
 const STORAGE_KEY = "atlas-throw-coach-sessions";
 const PROFILE_KEY = "atlas-throw-coach-profile";
@@ -108,6 +111,7 @@ export default function Home() {
   const [trainingHeaderTitle, setTrainingHeaderTitle] = useState<string | null>(null);
   const [seasonFocusCompetitionId, setSeasonFocusCompetitionId] = useState<string | null>(null);
   const [seasonFocusYear, setSeasonFocusYear] = useState<number | null>(null);
+  const [welcomeComplete, setWelcomeComplete] = useState<boolean | null>(null);
 
   useEffect(() => {
     const loadedSessions = loadSessions();
@@ -117,6 +121,7 @@ export default function Home() {
     setFavourites(loadFavourites());
     setTemplates(loadTemplates());
     setProfileName(loadProfileName());
+    setWelcomeComplete(loadWelcomeComplete());
 
     const meta = loadLiveTrainingMeta();
     if (meta && loadedSessions.some((s) => s.id === meta.sessionId)) {
@@ -591,6 +596,8 @@ export default function Home() {
   function renderProfile() {
     return (
       <>
+        <AppearanceSettings />
+
         <div className="card">
           <div className="profile-avatar">🏋</div>
           <div className="form-group">
@@ -743,16 +750,42 @@ export default function Home() {
     }
   }
 
+  function handleWelcomeContinue() {
+    saveWelcomeComplete();
+    setWelcomeComplete(true);
+  }
+
+  if (!loaded || welcomeComplete === null) {
+    return null;
+  }
+
+  if (!welcomeComplete) {
+    return <WelcomeScreen onContinue={handleWelcomeContinue} />;
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div className="app-header-inner">
-          <h1>
-            {tab === "training" && trainingHeaderTitle
-              ? trainingHeaderTitle
-              : TAB_LABELS[tab]}
-          </h1>
-          <span className="app-version">{APP_VERSION_LABEL}</span>
+        <div className="app-header-inner app-header-row">
+          <div className="app-header-titles">
+            <h1>
+              {tab === "profile"
+                ? "Nastavení"
+                : tab === "training" && trainingHeaderTitle
+                  ? trainingHeaderTitle
+                  : TAB_LABELS[tab]}
+            </h1>
+            <span className="app-version">{APP_VERSION_LABEL}</span>
+          </div>
+          <button
+            type="button"
+            className={`app-header-settings${tab === "profile" ? " app-header-settings-active" : ""}`}
+            onClick={() => setTab("profile")}
+            aria-label="Nastavení"
+            title="Nastavení"
+          >
+            ⚙
+          </button>
         </div>
       </header>
 
@@ -764,7 +797,7 @@ export default function Home() {
         {renderContent()}
       </main>
 
-      {tab !== "evaluation" && tab !== "quickCapture" && (
+      {tab !== "evaluation" && tab !== "quickCapture" && tab !== "profile" && (
         <BottomNavigation
           activeTab={tab === "live" ? "training" : tab}
           onTabChange={handleTabChange}

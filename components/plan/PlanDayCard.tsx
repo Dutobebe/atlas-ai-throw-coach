@@ -30,19 +30,10 @@ export default function PlanDayCard({
   const dayPhases = getPhasesForDate(phases, day.iso);
   const dayCompetitions = getCompetitionsForDate(seasons, day.iso);
   const hasContent = dayPhases.length > 0 || dayCompetitions.length > 0;
-  const todayColors = day.isToday ? { color: "#eab308", background: "rgba(234, 179, 8, 0.15)" } : null;
 
   return (
     <div
       className={`section-card plan-day-card${day.isToday ? " plan-day-today" : ""}`}
-      style={
-        todayColors
-          ? {
-              borderColor: todayColors.color,
-              boxShadow: `0 0 0 1px ${todayColors.background}`,
-            }
-          : undefined
-      }
     >
       <div className="plan-day-card-header">
         <div className="plan-day-left">

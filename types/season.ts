@@ -9,21 +9,27 @@ export interface CompetitionAttempt {
   status: CompetitionAttemptStatus;
 }
 
+export interface CompetitionResult {
+  id: string;
+  discipline: string;
+  implement: string;
+  official: boolean;
+  placement: string;
+  resultLink: string;
+  attempts: CompetitionAttempt[];
+  /** Best valid attempt distance in metres; computed from attempts */
+  bestAttempt: number | null;
+  notes: string;
+}
+
 export interface Competition {
   id: string;
   date: string;
   name: string;
   location: string;
-  disciplines: string[];
-  /** Implement / weight used at the competition */
-  implementWeight: string;
-  targetPerformance: string;
-  notes: string;
-  resultLink: string;
-  placement: string;
-  official: boolean;
   status: CompetitionStatus;
-  attempts: CompetitionAttempt[];
+  notes: string;
+  competitionResults: CompetitionResult[];
 }
 
 export interface Season {

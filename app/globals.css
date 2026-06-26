@@ -1,28 +1,122 @@
 @import "tailwindcss";
 
-:root {
-  --bg-primary: #060b14;
-  --bg-secondary: #0d1526;
-  --bg-card: #111c32;
-  --bg-card-hover: #152240;
-  --bg-input: #0a1220;
+/* ── Semantic design tokens (theme-aware) ── */
+[data-theme="dark"],
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+
+  --background: #060b14;
+  --surface: #0d1526;
+  --card: #111c32;
+  --card-hover: #152240;
+  --input: #0a1220;
   --border: #1e3050;
   --border-focus: #3b82f6;
   --text-primary: #f0f4fc;
   --text-secondary: #8b9dc3;
   --text-muted: #5a6f94;
+  --text-disabled: #4a5f82;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --primary-soft: rgba(59, 130, 246, 0.15);
+  --secondary: #1a2744;
   --accent: #3b82f6;
   --accent-hover: #2563eb;
   --accent-soft: rgba(59, 130, 246, 0.15);
   --success: #22c55e;
   --success-soft: rgba(34, 197, 94, 0.15);
   --warning: #f59e0b;
+  --warning-text: #eab308;
+  --warning-soft: rgba(234, 179, 8, 0.15);
   --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.15);
+  --danger-border: rgba(239, 68, 68, 0.3);
+  --orange: #f97316;
+  --orange-soft: rgba(249, 115, 22, 0.15);
+  --purple: #a855f7;
+  --purple-soft: rgba(168, 85, 247, 0.15);
+  --purple-text: #c084fc;
+  --on-primary: #ffffff;
+  --header-bg: rgba(6, 11, 20, 0.92);
+  --nav-bg: rgba(13, 21, 38, 0.96);
+  --overlay-bg: rgba(0, 0, 0, 0.35);
+  --scrim-bg: rgba(6, 11, 20, 0.75);
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --gradient-card-start: #111c32;
+  --gradient-card-end: #1a2d52;
+  --competition-border: rgba(234, 179, 8, 0.35);
+  --competition-bg: rgba(234, 179, 8, 0.08);
+  --competition-badge-bg: rgba(234, 179, 8, 0.2);
+  --chip-neutral-bg: rgba(148, 163, 184, 0.15);
+
+  /* Legacy aliases — keep existing component styles working */
+  --bg-primary: var(--background);
+  --bg-secondary: var(--surface);
+  --bg-card: var(--card);
+  --bg-card-hover: var(--card-hover);
+  --bg-input: var(--input);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --background: #f4f6fb;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card-hover: #eef2f9;
+  --input: #f8fafc;
+  --border: #d8e0ed;
+  --border-focus: #2563eb;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-disabled: #94a3b8;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: rgba(37, 99, 235, 0.12);
+  --secondary: #e8eef7;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --success: #16a34a;
+  --success-soft: rgba(22, 163, 74, 0.12);
+  --warning: #d97706;
+  --warning-text: #b45309;
+  --warning-soft: rgba(234, 179, 8, 0.18);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.1);
+  --danger-border: rgba(220, 38, 38, 0.25);
+  --orange: #ea580c;
+  --orange-soft: rgba(234, 88, 12, 0.12);
+  --purple: #9333ea;
+  --purple-soft: rgba(147, 51, 234, 0.12);
+  --purple-text: #7c3aed;
+  --on-primary: #ffffff;
+  --header-bg: rgba(244, 246, 251, 0.92);
+  --nav-bg: rgba(255, 255, 255, 0.96);
+  --overlay-bg: rgba(15, 23, 42, 0.25);
+  --scrim-bg: rgba(15, 23, 42, 0.45);
+  --shadow-color: rgba(15, 23, 42, 0.08);
+  --gradient-card-start: #ffffff;
+  --gradient-card-end: #eef2f9;
+  --competition-border: rgba(180, 83, 9, 0.25);
+  --competition-bg: rgba(234, 179, 8, 0.1);
+  --competition-badge-bg: rgba(234, 179, 8, 0.18);
+  --chip-neutral-bg: rgba(100, 116, 139, 0.12);
+
+  --bg-primary: var(--background);
+  --bg-secondary: var(--surface);
+  --bg-card: var(--card);
+  --bg-card-hover: var(--card-hover);
+  --bg-input: var(--input);
+}
+
+:root {
   --nav-height: 72px;
   --header-height: 56px;
   --radius: 16px;
   --radius-sm: 12px;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 24px var(--shadow-color);
 }
 
 @theme inline {
@@ -35,12 +129,12 @@
 }
 
 html {
-  background: var(--bg-primary);
+  background: var(--background);
 }
 
 body {
   margin: 0;
-  background: var(--bg-primary);
+  background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -51,7 +145,7 @@ body {
   max-width: 430px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: var(--bg-primary);
+  background: var(--background);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -66,7 +160,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 8px 20px;
-  background: rgba(6, 11, 20, 0.92);
+  background: var(--header-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
@@ -77,6 +171,13 @@ body {
   align-items: center;
   gap: 2px;
   width: 100%;
+}
+
+.app-header-titles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .app-header h1 {
@@ -114,7 +215,7 @@ body {
   height: var(--nav-height);
   display: flex;
   align-items: stretch;
-  background: rgba(13, 21, 38, 0.96);
+  background: var(--nav-bg);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   z-index: 20;
@@ -423,23 +524,23 @@ body {
 }
 
 .coach-load-low {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: var(--success-soft);
+  color: var(--success);
 }
 
 .coach-load-moderate {
-  background: rgba(234, 179, 8, 0.15);
-  color: #eab308;
+  background: var(--warning-soft);
+  color: var(--warning-text);
 }
 
 .coach-load-high {
-  background: rgba(249, 115, 22, 0.15);
-  color: #f97316;
+  background: var(--orange-soft);
+  color: var(--orange);
 }
 
 .coach-load-very-high {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .coach-prep-phase {
@@ -549,7 +650,7 @@ body {
 
 .btn-primary {
   background: var(--accent);
-  color: white;
+  color: var(--on-primary);
 }
 
 .btn-primary:hover {
@@ -567,9 +668,9 @@ body {
 }
 
 .btn-danger {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--danger-border);
 }
 
 .btn-sm {
@@ -1025,6 +1126,83 @@ body {
   white-space: pre-wrap;
 }
 
+.season-comp-disciplines-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.season-comp-discipline-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.season-comp-discipline-sep {
+  margin: 0 4px;
+  color: var(--text-muted);
+}
+
+.season-comp-results-summary {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.season-comp-result-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.season-comp-result-line span:first-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.season-competition-actions {
+  margin-top: 16px;
+  margin-bottom: 24px;
+}
+
+.competition-result-card {
+  margin-bottom: 12px;
+}
+
+.competition-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.competition-result-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.competition-result-icon {
+  font-size: 1.125rem;
+}
+
+.competition-result-best {
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+  color: var(--accent);
+}
+
 .season-status-chips {
   display: flex;
   gap: 8px;
@@ -1060,8 +1238,8 @@ body {
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(234, 179, 8, 0.12);
-  color: #eab308;
+  background: var(--warning-soft);
+  color: var(--warning-text);
   font-size: 0.6875rem;
   font-weight: 500;
 }
@@ -1161,7 +1339,7 @@ body {
   height: 24px;
   border: none;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--overlay-bg);
   color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1;
@@ -1349,13 +1527,13 @@ body {
 }
 
 .badge-series-drill {
-  background: rgba(249, 115, 22, 0.15);
-  color: #f97316;
+  background: var(--orange-soft);
+  color: var(--orange);
 }
 
 .badge-series-exercise {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: var(--purple-soft);
+  color: var(--purple);
 }
 
 .card-title .badge-imi,
@@ -1374,7 +1552,7 @@ body {
 }
 
 .hero-card {
-  background: linear-gradient(135deg, #111c32 0%, #1a2d52 100%);
+  background: linear-gradient(135deg, var(--gradient-card-start) 0%, var(--gradient-card-end) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 24px;
@@ -1491,7 +1669,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: rgba(6, 11, 20, 0.75);
+  background: var(--scrim-bg);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1636,8 +1814,8 @@ body {
 }
 
 .badge-from-plan {
-  background: rgba(168, 85, 247, 0.15);
-  color: #c084fc;
+  background: var(--purple-soft);
+  color: var(--purple-text);
 }
 
 .card-title .badge-from-plan {
@@ -2045,7 +2223,7 @@ body {
 
 .live-counter-btn-plus {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-primary);
 }
 
 .live-next-btn,
@@ -2144,9 +2322,9 @@ body {
 }
 
 .star-btn-active {
-  color: #eab308;
-  border-color: #eab308;
-  background: rgba(234, 179, 8, 0.12);
+  color: var(--warning-text);
+  border-color: var(--warning-text);
+  background: var(--warning-soft);
 }
 
 .evaluation-chips {
@@ -2180,7 +2358,7 @@ body {
 }
 
 .badge-eval-pending {
-  background: rgba(148, 163, 184, 0.15);
+  background: var(--chip-neutral-bg);
   color: var(--text-muted);
 }
 
@@ -2338,8 +2516,8 @@ body {
 }
 
 .training-series-type-throw {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .training-series-type-imitation {
@@ -2348,13 +2526,13 @@ body {
 }
 
 .training-series-type-drill {
-  background: rgba(249, 115, 22, 0.15);
-  color: #f97316;
+  background: var(--orange-soft);
+  color: var(--orange);
 }
 
 .training-series-type-exercise {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: var(--purple-soft);
+  color: var(--purple);
 }
 
 .training-series-summary-meta {
@@ -2585,9 +2763,9 @@ body {
   width: 100%;
   padding: 12px;
   margin-bottom: 8px;
-  border: 1px solid rgba(234, 179, 8, 0.35);
+  border: 1px solid var(--competition-border);
   border-radius: var(--radius-sm);
-  background: rgba(234, 179, 8, 0.08);
+  background: var(--competition-bg);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -2610,8 +2788,8 @@ body {
 .plan-competition-type-badge {
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(234, 179, 8, 0.2);
-  color: #eab308;
+  background: var(--competition-badge-bg);
+  color: var(--warning-text);
   font-weight: 600;
 }
 
@@ -2624,11 +2802,40 @@ body {
   color: var(--text-secondary);
 }
 
+.plan-competition-disciplines-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.plan-competition-discipline-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.plan-competition-discipline-sep {
+  margin: 0 4px;
+  color: var(--text-muted);
+}
+
 .plan-competition-best {
   margin-top: 6px;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--accent);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-competition-official {
+  display: inline-block;
+  margin-top: 8px;
 }
 
 .performance-source-chips {
@@ -2664,8 +2871,8 @@ body {
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(234, 179, 8, 0.15);
-  color: #eab308;
+  background: var(--warning-soft);
+  color: var(--warning-text);
   font-size: 0.6875rem;
   font-weight: 600;
   vertical-align: middle;
@@ -2729,4 +2936,230 @@ body {
 .competition-attempt-input,
 .competition-attempt-note {
   margin-top: 6px;
+}
+
+/* Plan — today highlight */
+.plan-day-today {
+  border-color: var(--warning-text);
+  box-shadow: 0 0 0 1px var(--warning-soft);
+}
+
+/* Header settings */
+.app-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+}
+
+.app-header-settings {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.app-header-settings-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Settings */
+.settings-hint {
+  margin: 0 0 12px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.theme-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.theme-option input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.theme-option-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.theme-option-label {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.theme-option-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* Welcome screen — fixed brand shell (dark navy + blue glow) */
+.welcome-screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px 24px;
+  background: #030711;
+  overflow-x: hidden;
+}
+
+.welcome-content {
+  width: 100%;
+  max-width: 430px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1;
+  justify-content: center;
+}
+
+.welcome-logo-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 40px;
+  width: min(100%, 280px);
+  aspect-ratio: 1;
+}
+
+.welcome-logo-glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.45) 0%,
+    rgba(37, 99, 235, 0.2) 40%,
+    transparent 70%
+  );
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.welcome-logo-image {
+  position: relative;
+  z-index: 1;
+  width: min(72vw, 220px);
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.welcome-theme-section {
+  margin-bottom: 8px;
+}
+
+.welcome-section-title {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  color: #e2e8f4;
+  letter-spacing: 0.01em;
+}
+
+.welcome-theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.welcome-theme-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 96px;
+  padding: 16px 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius);
+  background: rgba(13, 21, 38, 0.85);
+  color: #c8d4ea;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, color 0.15s;
+}
+
+.welcome-theme-card:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+.welcome-theme-card-selected {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.2);
+  color: #f0f4fc;
+}
+
+.welcome-theme-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: inherit;
+}
+
+.welcome-theme-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.welcome-theme-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.welcome-continue {
+  margin-top: 28px;
+  min-height: 56px;
+  font-size: 1.0625rem;
+  box-shadow: 0 8px 28px rgba(37, 99, 235, 0.35);
+}
+
+.welcome-footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #5a6f94;
+  letter-spacing: 0.02em;
 }

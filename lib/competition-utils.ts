@@ -1,5 +1,9 @@
 import { parseThrowValue } from "@/lib/training-utils";
-import type { Competition, CompetitionAttempt, CompetitionAttemptStatus } from "@/types/season";
+import type {
+  CompetitionAttempt,
+  CompetitionAttemptStatus,
+  CompetitionResult,
+} from "@/types/season";
 
 export const COMPETITION_ATTEMPT_COUNT = 6;
 
@@ -73,10 +77,10 @@ export function getAttemptDistanceValue(attempt: CompetitionAttempt): number | n
   return parseThrowValue(attempt.distance);
 }
 
-export function getBestValidAttempt(competition: Competition): number | null {
+export function computeBestValidAttempt(attempts: CompetitionAttempt[]): number | null {
   let best: number | null = null;
 
-  for (const attempt of competition.attempts) {
+  for (const attempt of attempts) {
     const value = getAttemptDistanceValue(attempt);
     if (value === null || value <= 0) continue;
     if (best === null || value > best) best = value;
@@ -85,9 +89,20 @@ export function getBestValidAttempt(competition: Competition): number | null {
   return best;
 }
 
-export function formatBestValidAttempt(competition: Competition): string | null {
-  const best = getBestValidAttempt(competition);
-  if (best === null) return null;
-  const rounded = Math.round(best * 100) / 100;
+export function getBestValidAttempt(result: CompetitionResult): number | null {
+  if (result.bestAttempt !== null && result.bestAttempt > 0) {
+    return result.bestAttempt;
+  }
+  return computeBestValidAttempt(result.attempts);
+}
+
+export function formatDistanceValue(distance: number): string {
+  const rounded = Math.round(distance * 100) / 100;
   return Number.isInteger(rounded) ? `${rounded} m` : `${rounded.toFixed(2)} m`;
+}
+
+export function formatBestValidAttempt(result: CompetitionResult): string | null {
+  const best = getBestValidAttempt(result);
+  if (best === null) return null;
+  return formatDistanceValue(best);
 }

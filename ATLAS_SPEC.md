@@ -696,15 +696,21 @@ interface Competition {
   date: string;             // YYYY-MM-DD
   name: string;
   location: string;
-  disciplines: string[];
-  implementWeight: string;
-  targetPerformance: string;
-  notes: string;            // multiline preserved
-  resultLink: string;
-  placement: string;
-  official: boolean;        // counts in Výkony when true + valid attempts
   status: "planned" | "completed";
+  notes: string;            // multiline preserved — general competition notes
+  competitionResults: CompetitionResult[];
+}
+
+interface CompetitionResult {
+  id: string;
+  discipline: string;
+  implement: string;
+  official: boolean;        // counts in Výkony when true + valid attempts
+  placement: string;
+  resultLink: string;
   attempts: CompetitionAttempt[];  // exactly 6 by default
+  bestAttempt: number | null;      // computed from valid attempts
+  notes: string;
 }
 
 interface CompetitionAttempt {
@@ -714,7 +720,7 @@ interface CompetitionAttempt {
 }
 ```
 
-**Migration:** Old competitions without new fields get defaults via `normalizeCompetition()` (`lib/competition-utils.ts`).
+**Migration:** `normalizeCompetition()` in `lib/season-utils.ts` migrates legacy flat fields (`disciplines`, `implementWeight`, `attempts`, `official`, etc.) into `competitionResults[]` — one result per legacy discipline; attempt data is kept on the first discipline only.
 
 ### Season module UI
 
@@ -722,23 +728,25 @@ interface CompetitionAttempt {
 - Main season goal (**textarea**, multiline + spaces preserved)
 - Secondary goals (textarea, one per line)
 - Competition list with add / edit / delete
-- Competition form: date, name, location, disciplines, implement, target, placement, result link, **official** checkbox, status, notes, **6 attempts** editor
-- Best valid attempt calculated automatically
+- Competition form — **general data only:** date, name, location, status, notes
+- **Discipline result cards** (`CompetitionResultCard`): one card per discipline with implement, placement, official, result link, 6 attempts, best valid attempt (auto), notes
+- **+ Přidat disciplínu** — add another discipline result card; each card editable and deletable
+- Best valid attempt calculated automatically per discipline
 
 ### Plan integration
 
-**Competitions in week view (v0.4.1):** Every competition from **Sezóna** appears on its date in **Plán** as a read-only card (`PlanCompetitionRow`):
+**Competitions in week view (v0.4.1+):** Every competition from **Sezóna** appears on its date in **Plán** as a read-only card (`PlanCompetitionRow`):
 
 - Badge **Závod**
-- Name, location, disciplines, status, best attempt (if entered)
+- Name, location, disciplines shown compactly (e.g. **Disk • Kladivo** with icons)
 - Tap opens competition edit in **Sezóna** tab
 - **Not counted** in training throw statistics
 
 `PlanPhase.competitionPrepId?: string` still links a training phase to competition prep (🏆 badge).
 
-### Performance integration (v0.4.1)
+### Performance integration (v0.4.1+)
 
-- Official competition results (`official === true`, valid attempts) appear in **Výkony**
+- Official **competitionResults** (`official === true`, valid attempts) appear in **Výkony** — one entry per discipline result, not per whole competition
 - Training `bestThrow` values = unofficial/training
 - Filter: Vše · Závodní/oficiální · Nezávodní/tréninkové
 - Badge **Oficiální** on official rows

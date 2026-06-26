@@ -5,9 +5,13 @@ import SectionCard from "@/components/common/SectionCard";
 import SectionTitle from "@/components/common/SectionTitle";
 import StatusBadge from "@/components/common/StatusBadge";
 import { getDisciplineIcon } from "@/lib/design";
+import { formatBestValidAttempt } from "@/lib/competition-utils";
 import {
   COMPETITION_STATUS_LABELS,
+  competitionHasOfficialResults,
   emptyCompetition,
+  emptyCompetitionResult,
+  formatCompetitionDisciplinesCompact,
   formatSecondaryGoals,
   getSeasonForYear,
   normalizeCompetition,
@@ -15,10 +19,9 @@ import {
   sortCompetitions,
   upsertSeason,
 } from "@/lib/season-utils";
-import { formatBestValidAttempt } from "@/lib/competition-utils";
-import { DISCIPLINES, formatDate, getDisciplineLabel } from "@/lib/training-utils";
-import type { Competition, CompetitionStatus, Season } from "@/types/season";
-import CompetitionAttemptsEditor from "./CompetitionAttemptsEditor";
+import { formatDate, getDisciplineLabel } from "@/lib/training-utils";
+import type { Competition, CompetitionResult, CompetitionStatus, Season } from "@/types/season";
+import CompetitionResultCard from "./CompetitionResultCard";
 
 interface SeasonModuleProps {
   seasons: Season[];
@@ -121,13 +124,27 @@ export default function SeasonModule({
     if (editingCompetitionId === id) cancelCompetitionForm();
   }
 
-  function toggleCompetitionDiscipline(value: string) {
-    setCompetitionDraft((prev) => {
-      const disciplines = prev.disciplines.includes(value)
-        ? prev.disciplines.filter((item) => item !== value)
-        : [...prev.disciplines, value];
-      return { ...prev, disciplines };
-    });
+  function addDisciplineResult() {
+    setCompetitionDraft((prev) => ({
+      ...prev,
+      competitionResults: [...prev.competitionResults, emptyCompetitionResult()],
+    }));
+  }
+
+  function updateDisciplineResult(index: number, result: CompetitionResult) {
+    setCompetitionDraft((prev) => ({
+      ...prev,
+      competitionResults: prev.competitionResults.map((item, i) =>
+        i === index ? result : item
+      ),
+    }));
+  }
+
+  function deleteDisciplineResult(index: number) {
+    setCompetitionDraft((prev) => ({
+      ...prev,
+      competitionResults: prev.competitionResults.filter((_, i) => i !== index),
+    }));
   }
 
   function updateCompetitionStatus(status: CompetitionStatus) {
@@ -177,93 +194,6 @@ export default function SeasonModule({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Disciplíny</label>
-            <div className="plan-discipline-chips">
-              {DISCIPLINES.map((discipline) => {
-                const active = competitionDraft.disciplines.includes(discipline.value);
-                return (
-                  <button
-                    key={discipline.value}
-                    type="button"
-                    className={`plan-chip${active ? " plan-chip-active" : ""}`}
-                    onClick={() => toggleCompetitionDiscipline(discipline.value)}
-                  >
-                    {getDisciplineIcon(discipline.value) && (
-                      <span className="plan-chip-icon">{getDisciplineIcon(discipline.value)}</span>
-                    )}
-                    {discipline.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Nářadí / hmotnost</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="např. 2 kg, 7,26 kg"
-              value={competitionDraft.implementWeight}
-              onChange={(e) =>
-                setCompetitionDraft((prev) => ({ ...prev, implementWeight: e.target.value }))
-              }
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Cílový výkon</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="např. 62 m / 18,50 m"
-              value={competitionDraft.targetPerformance}
-              onChange={(e) =>
-                setCompetitionDraft((prev) => ({ ...prev, targetPerformance: e.target.value }))
-              }
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Umístění</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="např. 3. místo"
-              value={competitionDraft.placement}
-              onChange={(e) =>
-                setCompetitionDraft((prev) => ({ ...prev, placement: e.target.value }))
-              }
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Odkaz na výsledek</label>
-            <input
-              type="url"
-              className="form-input"
-              placeholder="https://…"
-              value={competitionDraft.resultLink}
-              onChange={(e) =>
-                setCompetitionDraft((prev) => ({ ...prev, resultLink: e.target.value }))
-              }
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              <input
-                type="checkbox"
-                checked={competitionDraft.official}
-                onChange={(e) =>
-                  setCompetitionDraft((prev) => ({ ...prev, official: e.target.checked }))
-                }
-              />{" "}
-              Oficiální závod (počítá se do Výkonů)
-            </label>
-          </div>
-
-          <div className="form-group">
             <label className="form-label">Stav</label>
             <div className="season-status-chips">
               {(["planned", "completed"] as CompetitionStatus[]).map((status) => (
@@ -280,7 +210,7 @@ export default function SeasonModule({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Poznámky</label>
+            <label className="form-label">Poznámky k závodu</label>
             <textarea
               className="form-textarea season-goal-input"
               placeholder="Taktika, cíle, vybavení…"
@@ -288,33 +218,53 @@ export default function SeasonModule({
               onChange={(e) => setCompetitionDraft((prev) => ({ ...prev, notes: e.target.value }))}
             />
           </div>
-
-          <div className="form-group">
-            <label className="form-label">Pokusy</label>
-            <CompetitionAttemptsEditor
-              attempts={competitionDraft.attempts}
-              onChange={(attempts) => setCompetitionDraft((prev) => ({ ...prev, attempts }))}
-            />
-          </div>
-
-          <div className="actions-row">
-            {editingCompetitionId && (
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={() => deleteCompetition(editingCompetitionId)}
-              >
-                Smazat
-              </button>
-            )}
-            <button type="button" className="btn btn-secondary" onClick={cancelCompetitionForm}>
-              Zrušit
-            </button>
-            <button type="button" className="btn btn-primary" onClick={saveCompetition}>
-              Uložit závod
-            </button>
-          </div>
         </SectionCard>
+
+        <div className="season-comp-header">
+          <SectionTitle>Disciplíny</SectionTitle>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={addDisciplineResult}>
+            + Přidat disciplínu
+          </button>
+        </div>
+
+        {competitionDraft.competitionResults.length === 0 ? (
+          <SectionCard>
+            <div className="empty-state season-empty">
+              <p>Zatím žádné disciplíny. Přidej první výsledek.</p>
+              <button type="button" className="btn btn-primary" onClick={addDisciplineResult}>
+                + Přidat disciplínu
+              </button>
+            </div>
+          </SectionCard>
+        ) : (
+          competitionDraft.competitionResults.map((result, index) => (
+            <CompetitionResultCard
+              key={result.id}
+              result={result}
+              index={index}
+              onChange={(next) => updateDisciplineResult(index, next)}
+              onDelete={() => deleteDisciplineResult(index)}
+            />
+          ))
+        )}
+
+        <div className="actions-row season-competition-actions">
+          {editingCompetitionId && (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => deleteCompetition(editingCompetitionId)}
+            >
+              Smazat závod
+            </button>
+          )}
+          <button type="button" className="btn btn-secondary" onClick={cancelCompetitionForm}>
+            Zrušit
+          </button>
+          <button type="button" className="btn btn-primary" onClick={saveCompetition}>
+            Uložit závod
+          </button>
+        </div>
       </div>
     );
   }
@@ -387,7 +337,7 @@ export default function SeasonModule({
         </SectionCard>
       ) : (
         sortedCompetitions.map((competition) => {
-          const best = formatBestValidAttempt(competition);
+          const disciplineSummary = formatCompetitionDisciplinesCompact(competition);
           return (
           <SectionCard key={competition.id} className="season-comp-card">
             <button
@@ -401,7 +351,7 @@ export default function SeasonModule({
                   <div className="season-comp-meta">
                     <span>{formatDate(competition.date)}</span>
                     {competition.location && <span>{competition.location}</span>}
-                    {competition.official && (
+                    {competitionHasOfficialResults(competition) && (
                       <span className="performance-official-badge">Oficiální</span>
                     )}
                   </div>
@@ -412,30 +362,31 @@ export default function SeasonModule({
                 />
               </div>
 
-              {competition.disciplines.length > 0 && (
-                <div className="season-comp-disciplines">
-                  {competition.disciplines.map((discipline) => (
-                    <span key={discipline} className="season-comp-discipline">
-                      {getDisciplineIcon(discipline)} {getDisciplineLabel(discipline)}
+              {competition.competitionResults.length > 0 && (
+                <div className="season-comp-disciplines-compact">
+                  {competition.competitionResults.map((result, index) => (
+                    <span key={result.id} className="season-comp-discipline-item">
+                      {index > 0 && <span className="season-comp-discipline-sep">•</span>}
+                      {getDisciplineIcon(result.discipline)} {getDisciplineLabel(result.discipline)}
                     </span>
                   ))}
                 </div>
               )}
 
-              {competition.implementWeight && (
-                <div className="season-comp-target">Nářadí: {competition.implementWeight}</div>
-              )}
-
-              {competition.targetPerformance && (
-                <div className="season-comp-target">
-                  Cíl: {competition.targetPerformance}
+              {disciplineSummary && (
+                <div className="season-comp-results-summary">
+                  {competition.competitionResults.map((result) => {
+                    const best = formatBestValidAttempt(result);
+                    return (
+                      <div key={result.id} className="season-comp-result-line">
+                        <span>{getDisciplineLabel(result.discipline)}</span>
+                        {result.implement && <span>{result.implement}</span>}
+                        {result.placement && <span>{result.placement}</span>}
+                        {best && <span>{best}</span>}
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-
-              {best && <div className="season-comp-target">Nejlepší pokus: {best}</div>}
-
-              {competition.placement && (
-                <div className="season-comp-target">Umístění: {competition.placement}</div>
               )}
 
               {competition.notes && (

@@ -13,7 +13,10 @@ interface PlanCompetitionRowProps {
 }
 
 export default function PlanCompetitionRow({ competition, onClick }: PlanCompetitionRowProps) {
-  const best = formatBestValidAttempt(competition);
+  const officialResults = competition.competitionResults.filter((result) => result.official);
+  const bestResults = competition.competitionResults
+    .map((result) => ({ result, best: formatBestValidAttempt(result) }))
+    .filter((item) => item.best);
 
   return (
     <button
@@ -28,18 +31,29 @@ export default function PlanCompetitionRow({ competition, onClick }: PlanCompeti
         <div className="plan-competition-row-meta">
           <span className="plan-competition-type-badge">Závod</span>
           {competition.location && <span>{competition.location}</span>}
-          {competition.implementWeight && <span>{competition.implementWeight}</span>}
         </div>
-        {competition.disciplines.length > 0 && (
-          <div className="plan-competition-disciplines">
-            {competition.disciplines.map((discipline) => (
-              <span key={discipline} className="plan-competition-discipline">
-                {getDisciplineIcon(discipline)} {getDisciplineLabel(discipline)}
+        {competition.competitionResults.length > 0 && (
+          <div className="plan-competition-disciplines-compact">
+            {competition.competitionResults.map((result, index) => (
+              <span key={result.id} className="plan-competition-discipline-item">
+                {index > 0 && <span className="plan-competition-discipline-sep">•</span>}
+                {getDisciplineIcon(result.discipline)} {getDisciplineLabel(result.discipline)}
               </span>
             ))}
           </div>
         )}
-        {best && <div className="plan-competition-best">Nejlepší: {best}</div>}
+        {bestResults.length > 0 && (
+          <div className="plan-competition-best">
+            {bestResults.map(({ result, best }) => (
+              <span key={result.id} className="plan-competition-best-item">
+                {getDisciplineLabel(result.discipline)}: {best}
+              </span>
+            ))}
+          </div>
+        )}
+        {officialResults.length > 0 && (
+          <span className="performance-official-badge plan-competition-official">Oficiální</span>
+        )}
       </div>
       <StatusBadge
         status={competition.status === "completed" ? "completed" : "planned"}
