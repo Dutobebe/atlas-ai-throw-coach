@@ -2,19 +2,24 @@
 
 import { formatWeekRange, getWeekDays } from "@/lib/plan-utils";
 import type { PlanPhase } from "@/types/plan";
+import type { Season, Competition } from "@/types/season";
 import PlanDayCard from "./PlanDayCard";
 
 interface WeeklyPlannerProps {
   phases: PlanPhase[];
+  seasons: Season[];
   getPrepLabel: (competitionPrepId?: string) => string | null;
   onPhaseClick: (phase: PlanPhase) => void;
+  onCompetitionClick?: (competition: Competition) => void;
   onAddPhase: (date: string) => void;
 }
 
 export default function WeeklyPlanner({
   phases,
+  seasons,
   getPrepLabel,
   onPhaseClick,
+  onCompetitionClick,
   onAddPhase,
 }: WeeklyPlannerProps) {
   const weekDays = getWeekDays();
@@ -31,8 +36,10 @@ export default function WeeklyPlanner({
             key={day.iso}
             day={day}
             phases={phases}
+            seasons={seasons}
             getPrepLabel={getPrepLabel}
             onPhaseClick={onPhaseClick}
+            onCompetitionClick={onCompetitionClick}
             onAddPhase={onAddPhase}
           />
         ))}

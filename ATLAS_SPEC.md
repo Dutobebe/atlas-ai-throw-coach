@@ -697,30 +697,51 @@ interface Competition {
   name: string;
   location: string;
   disciplines: string[];
+  implementWeight: string;
   targetPerformance: string;
-  notes: string;
+  notes: string;            // multiline preserved
+  resultLink: string;
+  placement: string;
+  official: boolean;        // counts in Výkony when true + valid attempts
   status: "planned" | "completed";
+  attempts: CompetitionAttempt[];  // exactly 6 by default
+}
+
+interface CompetitionAttempt {
+  distance: string;
+  note: string;
+  status: "valid" | "foul" | "empty";  // foul = X, empty = skipped
 }
 ```
 
-Multiple seasons stored as `Season[]` keyed by `year`.
+**Migration:** Old competitions without new fields get defaults via `normalizeCompetition()` (`lib/competition-utils.ts`).
 
 ### Season module UI
 
 - Year selector (‹ / ›)
-- Main season goal (textarea)
+- Main season goal (**textarea**, multiline + spaces preserved)
 - Secondary goals (textarea, one per line)
-- Competition list (sorted by date) with add / edit / delete
-- Competition form: date, name, location, discipline chips, target performance, status, notes
-
-### Dashboard integration
-
-`NextEventCard` shows the **next planned competition** (status `planned`, date ≥ today) with **countdown** (`Za N dní`, `Zítra`, `Dnes`). Tap opens **Sezóna** tab. Empty state links to season management.
+- Competition list with add / edit / delete
+- Competition form: date, name, location, disciplines, implement, target, placement, result link, **official** checkbox, status, notes, **6 attempts** editor
+- Best valid attempt calculated automatically
 
 ### Plan integration
 
-`PlanPhase.competitionPrepId?: string` links a plan phase to a planned competition.  
-Phase form select **Příprava na závod**; week view and phase detail show 🏆 prep badge.
+**Competitions in week view (v0.4.1):** Every competition from **Sezóna** appears on its date in **Plán** as a read-only card (`PlanCompetitionRow`):
+
+- Badge **Závod**
+- Name, location, disciplines, status, best attempt (if entered)
+- Tap opens competition edit in **Sezóna** tab
+- **Not counted** in training throw statistics
+
+`PlanPhase.competitionPrepId?: string` still links a training phase to competition prep (🏆 badge).
+
+### Performance integration (v0.4.1)
+
+- Official competition results (`official === true`, valid attempts) appear in **Výkony**
+- Training `bestThrow` values = unofficial/training
+- Filter: Vše · Závodní/oficiální · Nezávodní/tréninkové
+- Badge **Oficiální** on official rows
 
 ---
 

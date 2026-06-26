@@ -1,5 +1,9 @@
 import { uid, formatDate } from "@/lib/training-utils";
 import { daysUntil } from "@/lib/dashboard-utils";
+import {
+  createDefaultAttempts,
+  normalizeAttempts,
+} from "@/lib/competition-utils";
 import type { Competition, CompetitionStatus, Season } from "@/types/season";
 
 export const SEASONS_STORAGE_KEY = "atlas-seasons";
@@ -26,9 +30,14 @@ export function emptyCompetition(): Competition {
     name: "",
     location: "",
     disciplines: [],
+    implementWeight: "",
     targetPerformance: "",
     notes: "",
+    resultLink: "",
+    placement: "",
+    official: false,
     status: "planned",
+    attempts: createDefaultAttempts(),
   };
 }
 
@@ -48,9 +57,14 @@ export function normalizeCompetition(raw: Partial<Competition> & { id?: string }
     name: raw.name?.trim() ?? "",
     location: raw.location?.trim() ?? "",
     disciplines: Array.isArray(raw.disciplines) ? raw.disciplines.filter(Boolean) : [],
+    implementWeight: raw.implementWeight?.trim() ?? "",
     targetPerformance: raw.targetPerformance?.trim() ?? "",
-    notes: raw.notes?.trim() ?? "",
+    notes: typeof raw.notes === "string" ? raw.notes : "",
+    resultLink: raw.resultLink?.trim() ?? "",
+    placement: raw.placement?.trim() ?? "",
+    official: Boolean(raw.official),
     status: isCompetitionStatus(raw.status) ? raw.status : "planned",
+    attempts: normalizeAttempts(raw.attempts),
   };
 }
 
@@ -61,7 +75,7 @@ export function normalizeSeason(raw: Partial<Season> & { year?: number }): Seaso
 
   return {
     year,
-    mainGoal: raw.mainGoal?.trim() ?? "",
+    mainGoal: typeof raw.mainGoal === "string" ? raw.mainGoal : "",
     secondaryGoals: Array.isArray(raw.secondaryGoals)
       ? raw.secondaryGoals.map((g) => g.trim()).filter(Boolean)
       : [],
@@ -219,4 +233,13 @@ export function parseSecondaryGoals(text: string): string[] {
 
 export function formatSecondaryGoals(goals: string[]): string {
   return goals.join("\n");
+}
+
+export function getCompetitionsForDate(
+  seasons: Season[],
+  iso: string
+): Array<Competition & { year: number }> {
+  return getAllCompetitions(seasons)
+    .filter((item) => item.date === iso && item.name.trim())
+    .sort((a, b) => a.name.localeCompare(b.name, "cs"));
 }

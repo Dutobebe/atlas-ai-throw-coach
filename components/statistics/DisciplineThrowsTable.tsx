@@ -19,34 +19,35 @@ export default function DisciplineThrowsTable({ sessions }: DisciplineThrowsTabl
   return (
     <SectionCard className="discipline-table-card">
       <SectionTitle>Počet hodů podle disciplíny</SectionTitle>
-      <div className="discipline-table-wrap">
-        <table className="discipline-table">
-          <thead>
-            <tr>
-              <th scope="col">Disciplína</th>
-              <th scope="col">Tento týden</th>
-              <th scope="col">Posledních 30 dní</th>
-              <th scope="col">Letos</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.key} className={row.isTotal ? "discipline-table-total" : undefined}>
-                <th scope="row">
-                  <span className="discipline-table-name">
-                    <span className="discipline-table-icon" aria-hidden>
-                      {row.icon}
-                    </span>
-                    {row.label}
-                  </span>
-                </th>
-                <td>{row.periods.thisWeek}</td>
-                <td>{row.periods.last30Days}</td>
-                <td>{row.periods.thisYear}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+      <div className="discipline-stats-mobile">
+        {rows.map((row) => (
+          <div
+            key={row.key}
+            className={`discipline-stat-row${row.isTotal ? " discipline-stat-row-total" : ""}`}
+          >
+            <div className="discipline-stat-name">
+              <span className="discipline-table-icon" aria-hidden>
+                {row.icon}
+              </span>
+              {row.label}
+            </div>
+            <div className="discipline-stat-metrics">
+              <div className="discipline-stat-metric">
+                <span className="discipline-stat-label">Týden</span>
+                <span className="discipline-stat-value">{row.periods.thisWeek}</span>
+              </div>
+              <div className="discipline-stat-metric">
+                <span className="discipline-stat-label">30 dní</span>
+                <span className="discipline-stat-value">{row.periods.last30Days}</span>
+              </div>
+              <div className="discipline-stat-metric">
+                <span className="discipline-stat-label">Rok</span>
+                <span className="discipline-stat-value">{row.periods.thisYear}</span>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </SectionCard>
   );

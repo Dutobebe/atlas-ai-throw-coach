@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SectionCard from "@/components/common/SectionCard";
 import SectionTitle from "@/components/common/SectionTitle";
 import StatusBadge from "@/components/common/StatusBadge";
@@ -15,13 +15,18 @@ import {
   sortCompetitions,
   upsertSeason,
 } from "@/lib/season-utils";
+import { formatBestValidAttempt } from "@/lib/competition-utils";
 import { DISCIPLINES, formatDate, getDisciplineLabel } from "@/lib/training-utils";
 import type { Competition, CompetitionStatus, Season } from "@/types/season";
+import CompetitionAttemptsEditor from "./CompetitionAttemptsEditor";
 
 interface SeasonModuleProps {
   seasons: Season[];
   onSeasonsChange: (seasons: Season[]) => void;
   onToast: (message: string) => void;
+  focusCompetitionId?: string | null;
+  focusYear?: number | null;
+  onFocusHandled?: () => void;
 }
 
 type SeasonView = "overview" | "competition";
@@ -30,6 +35,9 @@ export default function SeasonModule({
   seasons,
   onSeasonsChange,
   onToast,
+  focusCompetitionId,
+  focusYear,
+  onFocusHandled,
 }: SeasonModuleProps) {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [view, setView] = useState<SeasonView>("overview");
@@ -41,6 +49,23 @@ export default function SeasonModule({
     () => sortCompetitions(season.competitions),
     [season.competitions]
   );
+
+  useEffect(() => {
+    if (!focusCompetitionId) return;
+
+    const targetYear = focusYear ?? new Date().getFullYear();
+    setYear(targetYear);
+
+    const targetSeason = getSeasonForYear(seasons, targetYear);
+    const competition = targetSeason.competitions.find((item) => item.id === focusCompetitionId);
+    if (competition) {
+      setCompetitionDraft({ ...competition });
+      setEditingCompetitionId(competition.id);
+      setView("competition");
+    }
+
+    onFocusHandled?.();
+  }, [focusCompetitionId, focusYear, seasons, onFocusHandled]);
 
   function saveSeason(nextSeason: Season) {
     onSeasonsChange(upsertSeason(seasons, nextSeason));
@@ -174,6 +199,19 @@ export default function SeasonModule({
           </div>
 
           <div className="form-group">
+            <label className="form-label">Nářadí / hmotnost</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="např. 2 kg, 7,26 kg"
+              value={competitionDraft.implementWeight}
+              onChange={(e) =>
+                setCompetitionDraft((prev) => ({ ...prev, implementWeight: e.target.value }))
+              }
+            />
+          </div>
+
+          <div className="form-group">
             <label className="form-label">Cílový výkon</label>
             <input
               type="text"
@@ -184,6 +222,45 @@ export default function SeasonModule({
                 setCompetitionDraft((prev) => ({ ...prev, targetPerformance: e.target.value }))
               }
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Umístění</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="např. 3. místo"
+              value={competitionDraft.placement}
+              onChange={(e) =>
+                setCompetitionDraft((prev) => ({ ...prev, placement: e.target.value }))
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Odkaz na výsledek</label>
+            <input
+              type="url"
+              className="form-input"
+              placeholder="https://…"
+              value={competitionDraft.resultLink}
+              onChange={(e) =>
+                setCompetitionDraft((prev) => ({ ...prev, resultLink: e.target.value }))
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <input
+                type="checkbox"
+                checked={competitionDraft.official}
+                onChange={(e) =>
+                  setCompetitionDraft((prev) => ({ ...prev, official: e.target.checked }))
+                }
+              />{" "}
+              Oficiální závod (počítá se do Výkonů)
+            </label>
           </div>
 
           <div className="form-group">
@@ -205,10 +282,18 @@ export default function SeasonModule({
           <div className="form-group">
             <label className="form-label">Poznámky</label>
             <textarea
-              className="form-textarea"
+              className="form-textarea season-goal-input"
               placeholder="Taktika, cíle, vybavení…"
               value={competitionDraft.notes}
               onChange={(e) => setCompetitionDraft((prev) => ({ ...prev, notes: e.target.value }))}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Pokusy</label>
+            <CompetitionAttemptsEditor
+              attempts={competitionDraft.attempts}
+              onChange={(attempts) => setCompetitionDraft((prev) => ({ ...prev, attempts }))}
             />
           </div>
 
@@ -301,7 +386,9 @@ export default function SeasonModule({
           </div>
         </SectionCard>
       ) : (
-        sortedCompetitions.map((competition) => (
+        sortedCompetitions.map((competition) => {
+          const best = formatBestValidAttempt(competition);
+          return (
           <SectionCard key={competition.id} className="season-comp-card">
             <button
               type="button"
@@ -314,6 +401,9 @@ export default function SeasonModule({
                   <div className="season-comp-meta">
                     <span>{formatDate(competition.date)}</span>
                     {competition.location && <span>{competition.location}</span>}
+                    {competition.official && (
+                      <span className="performance-official-badge">Oficiální</span>
+                    )}
                   </div>
                 </div>
                 <StatusBadge
@@ -332,10 +422,20 @@ export default function SeasonModule({
                 </div>
               )}
 
+              {competition.implementWeight && (
+                <div className="season-comp-target">Nářadí: {competition.implementWeight}</div>
+              )}
+
               {competition.targetPerformance && (
                 <div className="season-comp-target">
                   Cíl: {competition.targetPerformance}
                 </div>
+              )}
+
+              {best && <div className="season-comp-target">Nejlepší pokus: {best}</div>}
+
+              {competition.placement && (
+                <div className="season-comp-target">Umístění: {competition.placement}</div>
               )}
 
               {competition.notes && (
@@ -343,7 +443,8 @@ export default function SeasonModule({
               )}
             </button>
           </SectionCard>
-        ))
+        );
+        })
       )}
 
       {seasons.every((item) => item.year !== year) && sortedCompetitions.length === 0 && (

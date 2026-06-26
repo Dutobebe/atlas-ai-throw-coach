@@ -1,3 +1,4 @@
+import { getBestValidAttempt } from "@/lib/competition-utils";
 import { getDisciplineIcon } from "@/lib/design";
 import {
   formatTechniqueDisplay,
@@ -5,18 +6,23 @@ import {
   getSeriesBestThrow,
   isThrowSeries,
 } from "@/lib/training-utils";
+import type { Season } from "@/types/season";
 import type { TrainingSession, TrainingSeries } from "@/types/training";
+
+export type PerformanceSourceFilter = "" | "official" | "unofficial";
 
 export interface PerformanceFilters {
   discipline: string;
   implement: string;
   technique: string;
   year: number;
+  source: PerformanceSourceFilter;
 }
 
 export interface PerformanceRecord {
   distance: number;
   date: string;
+  official: boolean;
 }
 
 export interface PerformanceGroupRow {
@@ -29,6 +35,7 @@ export interface PerformanceGroupRow {
   techniqueDisplay: string;
   pr: PerformanceRecord | null;
   seasonBest: PerformanceRecord | null;
+  hasOfficial: boolean;
 }
 
 export interface PerformanceFilterOptions {
@@ -44,6 +51,7 @@ interface RawEntry {
   technique: string;
   distance: number;
   date: string;
+  official: boolean;
 }
 
 export function isPerformanceEligibleSeries(series: TrainingSeries): boolean {
@@ -59,7 +67,7 @@ function groupKey(discipline: string, implement: string, technique: string): str
   return `${discipline}\0${implement}\0${technique}`;
 }
 
-function collectEntries(sessions: TrainingSession[]): RawEntry[] {
+function collectTrainingEntries(sessions: TrainingSession[]): RawEntry[] {
   const entries: RawEntry[] = [];
 
   for (const session of sessions) {
@@ -77,6 +85,7 @@ function collectEntries(sessions: TrainingSession[]): RawEntry[] {
         technique: series.technique?.trim() ?? "",
         distance,
         date: session.date,
+        official: false,
       });
     }
   }
@@ -84,14 +93,55 @@ function collectEntries(sessions: TrainingSession[]): RawEntry[] {
   return entries;
 }
 
+function collectCompetitionEntries(seasons: Season[]): RawEntry[] {
+  const entries: RawEntry[] = [];
+
+  for (const season of seasons) {
+    for (const competition of season.competitions) {
+      if (!competition.official) continue;
+
+      const distance = getBestValidAttempt(competition);
+      if (distance === null || distance <= 0) continue;
+
+      const disciplines =
+        competition.disciplines.length > 0 ? competition.disciplines : ["disk"];
+
+      for (const discipline of disciplines) {
+        entries.push({
+          discipline,
+          implement: competition.implementWeight?.trim() ?? "",
+          technique: "",
+          distance,
+          date: competition.date,
+          official: true,
+        });
+      }
+    }
+  }
+
+  return entries;
+}
+
+function collectEntries(sessions: TrainingSession[], seasons: Season[]): RawEntry[] {
+  return [...collectTrainingEntries(sessions), ...collectCompetitionEntries(seasons)];
+}
+
 function computeBest(entries: RawEntry[]): PerformanceRecord | null {
   let best: PerformanceRecord | null = null;
 
   for (const entry of entries) {
     if (!best || entry.distance > best.distance) {
-      best = { distance: entry.distance, date: entry.date };
+      best = {
+        distance: entry.distance,
+        date: entry.date,
+        official: entry.official,
+      };
     } else if (entry.distance === best.distance && entry.date < best.date) {
-      best = { distance: entry.distance, date: entry.date };
+      best = {
+        distance: entry.distance,
+        date: entry.date,
+        official: entry.official,
+      };
     }
   }
 
@@ -104,14 +154,22 @@ export function formatPerformanceDistance(distance: number): string {
 }
 
 export function getPerformanceFilterOptions(
-  sessions: TrainingSession[]
+  sessions: TrainingSession[],
+  seasons: Season[] = []
 ): PerformanceFilterOptions {
-  const entries = collectEntries(sessions);
+  const entries = collectEntries(sessions, seasons);
   const years = new Set<number>([new Date().getFullYear()]);
 
   for (const session of sessions) {
     const year = parseSessionYear(session.date);
     if (year) years.add(year);
+  }
+
+  for (const season of seasons) {
+    for (const competition of season.competitions) {
+      const year = parseSessionYear(competition.date);
+      if (year) years.add(year);
+    }
   }
 
   return {
@@ -130,9 +188,15 @@ export function getPerformanceFilterOptions(
 
 export function calculatePerformanceGroups(
   sessions: TrainingSession[],
+  seasons: Season[],
   filters: PerformanceFilters
 ): PerformanceGroupRow[] {
-  const entries = collectEntries(sessions);
+  const entries = collectEntries(sessions, seasons).filter((entry) => {
+    if (filters.source === "official") return entry.official;
+    if (filters.source === "unofficial") return !entry.official;
+    return true;
+  });
+
   const byGroup = new Map<string, RawEntry[]>();
 
   for (const entry of entries) {
@@ -156,6 +220,7 @@ export function calculatePerformanceGroups(
       (entry) => parseSessionYear(entry.date) === filters.year
     );
     const seasonBest = seasonEntries.length > 0 ? computeBest(seasonEntries) : null;
+    const hasOfficial = groupEntries.some((entry) => entry.official);
 
     rows.push({
       key,
@@ -169,6 +234,7 @@ export function calculatePerformanceGroups(
         : "—",
       pr,
       seasonBest,
+      hasOfficial,
     });
   }
 
@@ -189,5 +255,10 @@ export function defaultPerformanceFilters(
     implement: "",
     technique: "",
     year: options.years[0] ?? new Date().getFullYear(),
+    source: "",
   };
+}
+
+export function hasAnyPerformanceData(sessions: TrainingSession[], seasons: Season[]): boolean {
+  return collectEntries(sessions, seasons).length > 0;
 }

@@ -1,9 +1,11 @@
 {
   "name": "project-atlas",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev-single.ps1",
+    "dev:single": "npm run dev",
+    "dev:raw": "next dev --turbopack",
     "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",

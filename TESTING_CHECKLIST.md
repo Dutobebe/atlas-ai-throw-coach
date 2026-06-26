@@ -1,14 +1,15 @@
 # Atlas MVP — Manual Testing Checklist
 
-**Version:** Atlas v0.4-test  
+**Version:** Atlas v0.4.1-test  
 **Purpose:** Real-world validation before further development. Focus on core training flow and data persistence.
 
 ---
 
 ## Setup
 
+- [ ] Start the app with `npm run dev:single` (stops stale dev servers, verifies Local URL, opens browser)
 - [ ] Open app in mobile viewport (~430px) or on a phone
-- [ ] Confirm header shows **Atlas v0.4-test**
+- [ ] Confirm header shows **Atlas v0.4.1-test**
 - [ ] Confirm bottom navigation is visible on main tabs
 - [ ] Start with empty data (Profil → Smazat všechna data) OR use existing test data
 
@@ -144,6 +145,37 @@ After completing one full training with Throw series (e.g. 10 throws Disk):
 - [ ] Sezóna: season goal, competition
 - [ ] Profil: name saves to localStorage
 - [ ] Dashboard AI coach card renders without error
+
+---
+
+## 10. Season & Plan (v0.4.1)
+
+### Season goals
+
+- [ ] Edit **Hlavní cíl sezóny** with spaces and multiple lines — formatting preserved after save
+- [ ] Goal displays correctly on Dashboard AI Coach card (multiline)
+
+### Competition in Plan
+
+- [ ] Create competition in **Sezóna** for a date in current week
+- [ ] Open **Plán** — competition appears on that day with **Závod** badge
+- [ ] Shows name, disciplines, status (not empty day if only competition exists)
+- [ ] Tap competition card → opens edit in **Sezóna**
+- [ ] Competition does **not** increase throw counts in **Statistiky**
+
+### Competition results
+
+- [ ] Edit competition — fill 6 attempts (valid distance, X, empty)
+- [ ] Best valid attempt shown on competition card
+- [ ] Mark **Oficiální závod** + save → appears in **Výkony** with **Oficiální** badge
+- [ ] Filter **Závodní / oficiální** shows only official results
+- [ ] Filter **Nezávodní / tréninkové** shows only training best throws
+
+### Statistics mobile layout
+
+- [ ] Open **Statistiky** at 390px width
+- [ ] **Počet hodů podle disciplíny** shows stacked rows (Týden / 30 dní / Rok)
+- [ ] No horizontal scroll or overflow
 
 ---
 

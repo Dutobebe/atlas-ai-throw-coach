@@ -13,7 +13,7 @@ import {
   getCompetitionPrepOptions,
 } from "@/lib/season-utils";
 import type { PhaseStatus, PlanPhase, PlanView } from "@/types/plan";
-import type { Season } from "@/types/season";
+import type { Season, Competition } from "@/types/season";
 import type { TrainingTemplate } from "@/types/template";
 import PhaseDetail from "./PhaseDetail";
 import PhaseForm from "./PhaseForm";
@@ -25,6 +25,7 @@ interface PlanModuleProps {
   templates: TrainingTemplate[];
   onPhasesChange: (phases: PlanPhase[]) => void;
   onStartTrainingFromPhase: (phase: PlanPhase) => void;
+  onCompetitionClick?: (competition: Competition) => void;
   onToast: (message: string) => void;
 }
 
@@ -34,6 +35,7 @@ export default function PlanModule({
   templates,
   onPhasesChange,
   onStartTrainingFromPhase,
+  onCompetitionClick,
   onToast,
 }: PlanModuleProps) {
   const [view, setView] = useState<PlanView>("week");
@@ -155,11 +157,13 @@ export default function PlanModule({
   return (
     <WeeklyPlanner
       phases={phases}
+      seasons={seasons}
       getPrepLabel={getPrepLabel}
       onPhaseClick={(phase) => {
         setSelectedPhaseId(phase.id);
         setView("detail");
       }}
+      onCompetitionClick={onCompetitionClick}
       onAddPhase={startNewPhase}
     />
   );

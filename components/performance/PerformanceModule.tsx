@@ -7,19 +7,29 @@ import {
   defaultPerformanceFilters,
   formatPerformanceDistance,
   getPerformanceFilterOptions,
+  hasAnyPerformanceData,
   type PerformanceFilters,
+  type PerformanceSourceFilter,
 } from "@/lib/performance-utils";
 import { formatDate, formatTechniqueDisplay } from "@/lib/training-utils";
+import type { Season } from "@/types/season";
 import type { TrainingSession } from "@/types/training";
 
 interface PerformanceModuleProps {
   sessions: TrainingSession[];
+  seasons: Season[];
 }
 
-export default function PerformanceModule({ sessions }: PerformanceModuleProps) {
+const SOURCE_FILTER_OPTIONS: { value: PerformanceSourceFilter; label: string }[] = [
+  { value: "", label: "Vše" },
+  { value: "official", label: "Závodní / oficiální" },
+  { value: "unofficial", label: "Nezávodní / tréninkové" },
+];
+
+export default function PerformanceModule({ sessions, seasons }: PerformanceModuleProps) {
   const filterOptions = useMemo(
-    () => getPerformanceFilterOptions(sessions),
-    [sessions]
+    () => getPerformanceFilterOptions(sessions, seasons),
+    [sessions, seasons]
   );
 
   const [filters, setFilters] = useState<PerformanceFilters>(() =>
@@ -35,8 +45,8 @@ export default function PerformanceModule({ sessions }: PerformanceModuleProps) 
   }, [filters, filterOptions.years]);
 
   const rows = useMemo(
-    () => calculatePerformanceGroups(sessions, activeFilters),
-    [sessions, activeFilters]
+    () => calculatePerformanceGroups(sessions, seasons, activeFilters),
+    [sessions, seasons, activeFilters]
   );
 
   function updateFilter<K extends keyof PerformanceFilters>(
@@ -46,12 +56,13 @@ export default function PerformanceModule({ sessions }: PerformanceModuleProps) 
     setFilters((prev) => ({ ...prev, [field]: value }));
   }
 
-  if (filterOptions.disciplines.length === 0) {
+  if (!hasAnyPerformanceData(sessions, seasons)) {
     return (
       <div className="empty-state">
         <p>Zatím žádné výkony.</p>
         <p className="card-subtitle" style={{ marginTop: 8 }}>
-          PR a sezónní nejlepší výsledky se zobrazí po zadání hodů typu Throw s nejdelším hodem.
+          PR a sezónní nejlepší výsledky se zobrazí po zadání hodů typu Throw s nejdelším hodem
+          nebo oficiálních výsledků ze závodu.
         </p>
       </div>
     );
@@ -62,6 +73,22 @@ export default function PerformanceModule({ sessions }: PerformanceModuleProps) 
       <div className="card performance-filters-card">
         <div className="card-title">Filtry</div>
         <div className="performance-filters">
+          <div className="form-group performance-filter-field performance-filter-field-wide">
+            <label className="form-label">Typ výkonu</label>
+            <div className="performance-source-chips">
+              {SOURCE_FILTER_OPTIONS.map((option) => (
+                <button
+                  key={option.value || "all"}
+                  type="button"
+                  className={`performance-source-chip${activeFilters.source === option.value ? " performance-source-chip-active" : ""}`}
+                  onClick={() => updateFilter("source", option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="form-group performance-filter-field">
             <label className="form-label" htmlFor="perf-filter-discipline">
               Disciplína
@@ -154,6 +181,9 @@ export default function PerformanceModule({ sessions }: PerformanceModuleProps) 
                   </span>
                 )}
                 {row.disciplineLabel}
+                {row.hasOfficial && (
+                  <span className="performance-official-badge">Oficiální</span>
+                )}
               </span>
               <span className="performance-row-meta">{row.implement}</span>
             </div>

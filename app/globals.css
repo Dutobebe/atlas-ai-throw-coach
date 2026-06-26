@@ -468,6 +468,7 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-primary);
+  white-space: pre-wrap;
 }
 
 .coach-recommendation {
@@ -751,82 +752,66 @@ body {
   margin-bottom: 12px;
 }
 
-.discipline-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin: 0 -4px;
-  padding: 0 4px;
+.discipline-stats-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.discipline-table {
-  width: 100%;
-  min-width: 320px;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
+.discipline-stat-row {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
 }
 
-.discipline-table th,
-.discipline-table td {
-  padding: 10px 8px;
-  text-align: right;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+.discipline-stat-row-total {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
-.discipline-table thead th {
-  color: var(--text-secondary);
+.discipline-stat-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9375rem;
   font-weight: 600;
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  background: var(--bg-input);
+  margin-bottom: 10px;
 }
 
-.discipline-table thead th:first-child {
-  text-align: left;
-  border-radius: var(--radius-sm) 0 0 0;
+.discipline-stat-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.discipline-table thead th:last-child {
-  border-radius: 0 var(--radius-sm) 0 0;
-}
-
-.discipline-table tbody th {
-  text-align: left;
-  font-weight: 500;
-  color: var(--text-primary);
-  position: sticky;
-  left: 0;
+.discipline-stat-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 8px;
   background: var(--bg-card);
-  z-index: 1;
 }
 
-.discipline-table tbody td {
+.discipline-stat-label {
+  font-size: 0.625rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.discipline-stat-value {
+  font-size: 1.0625rem;
+  font-weight: 700;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 
-.discipline-table tbody tr:last-child th,
-.discipline-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.discipline-table-total th,
-.discipline-table-total td {
-  font-weight: 700;
-  border-top: 2px solid var(--border);
-  padding-top: 12px;
-}
-
-.discipline-table-total td {
+.discipline-stat-row-total .discipline-stat-value {
   color: var(--text-primary);
-}
-
-.discipline-table-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .discipline-table-icon {
@@ -951,6 +936,7 @@ body {
 
 .season-goal-input {
   min-height: 88px;
+  white-space: pre-wrap;
 }
 
 .season-hint {
@@ -1036,6 +1022,7 @@ body {
   font-size: 0.8125rem;
   color: var(--text-muted);
   line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .season-status-chips {
@@ -2588,4 +2575,158 @@ body {
 .active-training-add-first {
   min-height: 56px;
   margin-top: 8px;
+}
+
+.plan-competition-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(234, 179, 8, 0.08);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.plan-competition-row-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.plan-competition-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.plan-competition-type-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(234, 179, 8, 0.2);
+  color: #eab308;
+  font-weight: 600;
+}
+
+.plan-competition-disciplines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.plan-competition-best {
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.performance-source-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.performance-source-chip {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.performance-source-chip-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.performance-filter-field-wide {
+  grid-column: 1 / -1;
+}
+
+.performance-official-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.competition-attempts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.competition-attempt-card {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+
+.competition-attempt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.competition-attempt-num {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.competition-attempt-preview {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.competition-attempt-status-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.competition-attempt-chip {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.competition-attempt-chip-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.competition-attempt-input,
+.competition-attempt-note {
+  margin-top: 6px;
 }

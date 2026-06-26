@@ -106,6 +106,8 @@ export default function Home() {
   const [evaluationSessionId, setEvaluationSessionId] = useState<string | null>(null);
   const [trainingAutoStart, setTrainingAutoStart] = useState(false);
   const [trainingHeaderTitle, setTrainingHeaderTitle] = useState<string | null>(null);
+  const [seasonFocusCompetitionId, setSeasonFocusCompetitionId] = useState<string | null>(null);
+  const [seasonFocusYear, setSeasonFocusYear] = useState<number | null>(null);
 
   useEffect(() => {
     const loadedSessions = loadSessions();
@@ -648,6 +650,12 @@ export default function Home() {
             templates={templates}
             onPhasesChange={setPhases}
             onStartTrainingFromPhase={startTrainingFromPhase}
+            onCompetitionClick={(competition) => {
+              const year = Number(competition.date.slice(0, 4)) || new Date().getFullYear();
+              setSeasonFocusYear(year);
+              setSeasonFocusCompetitionId(competition.id);
+              setTab("season");
+            }}
             onToast={showToast}
           />
         );
@@ -657,6 +665,12 @@ export default function Home() {
             seasons={seasons}
             onSeasonsChange={setSeasons}
             onToast={showToast}
+            focusCompetitionId={seasonFocusCompetitionId}
+            focusYear={seasonFocusYear}
+            onFocusHandled={() => {
+              setSeasonFocusCompetitionId(null);
+              setSeasonFocusYear(null);
+            }}
           />
         );
       case "quickCapture":
@@ -719,7 +733,7 @@ export default function Home() {
           </div>
         );
       case "performance":
-        return <PerformanceModule sessions={sessions} />;
+        return <PerformanceModule sessions={sessions} seasons={seasons} />;
       case "history":
         return renderHistory();
       case "statistics":
