@@ -1,6 +1,24 @@
 # Atlas Coach Framework
 
+> **Status:** Active · **Last updated:** _TBD_  
+> **Related:** [Product Vision](./PRODUCT_VISION.md) · [Data Model](./DATA_MODEL.md) · [Roadmap](./ROADMAP.md) · [ATLAS_SPEC.md](../ATLAS_SPEC.md)
+
 Atlas is a **decision support system**, not only a training diary. It records what happened, but its primary value is helping athletes and coaches decide **what to do next** — in the week, in the day, and in the session — based on season context, load, and throwing-specific rules.
+
+## Table of contents
+
+- [Two-layer engine](#two-layer-engine)
+  - [Planning Engine](#planning-engine)
+  - [Daily Coach Engine](#daily-coach-engine)
+- [Discipline Combination Rules](#discipline-combination-rules)
+- [Training Type Decision Rules](#training-type-decision-rules)
+- [Decision flow (summary)](#decision-flow-summary)
+- [Future work](#future-work)
+- [Related documents](#related-documents)
+
+---
+
+## Two-layer engine
 
 The coach engine works in **two layers**:
 
@@ -216,10 +234,28 @@ Recommendation + explanation (Proč?)
 
 ---
 
+## Future work
+
+<!-- TODO: Expand as Planning Engine ships -->
+
+| Area | Status | Notes |
+|------|--------|-------|
+| Planning Engine (weekly rules) | ⏳ Planned | See [Roadmap — Phase 2](./ROADMAP.md#phase-2--coach--load) |
+| LLM / natural language coach | ⏳ Icebox | Out of scope for v1 |
+| Per-discipline rule tuning | _TBD_ | _Placeholder_ |
+| Coach copy localisation review | _TBD_ | Czech labels in UI |
+
+---
+
 ## Related documents
 
-| Document | Content |
+| Document | Purpose |
 |----------|---------|
-| `COACH_FRAMEWORK.md` (root) | v1 implementation pillars, load score, API |
-| `lib/coach-framework.ts` | Daily Coach Engine (current code) |
-| `ATLAS_SPEC.md` §19 | App integration |
+| [Product Vision](./PRODUCT_VISION.md) | Decision support as strategic pillar |
+| [Data Model](./DATA_MODEL.md) | Season · Week · Day · Item — coach data sources |
+| [Roadmap](./ROADMAP.md) | Phase 2 coach milestones |
+| [Backlog](./BACKLOG.md) | Coach-related tickets |
+| [UX Guidelines](./UX_GUIDELINES.md) | Recommendation presentation (Proč?) |
+| [COACH_FRAMEWORK.md](../COACH_FRAMEWORK.md) (root) | v1 implementation summary |
+| [lib/coach-framework.ts](../lib/coach-framework.ts) | Daily Coach Engine (current code) |
+| [ATLAS_SPEC.md](../ATLAS_SPEC.md) | App integration §19 |

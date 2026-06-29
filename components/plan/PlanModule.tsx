@@ -20,6 +20,7 @@ import PhaseForm from "./PhaseForm";
 import WeeklyPlanner from "./WeeklyPlanner";
 
 interface PlanModuleProps {
+  planEntryKey: number;
   phases: PlanPhase[];
   seasons: Season[];
   templates: TrainingTemplate[];
@@ -30,6 +31,7 @@ interface PlanModuleProps {
 }
 
 export default function PlanModule({
+  planEntryKey,
   phases,
   seasons,
   templates,
@@ -156,6 +158,7 @@ export default function PlanModule({
 
   return (
     <WeeklyPlanner
+      planEntryKey={planEntryKey}
       phases={phases}
       seasons={seasons}
       getPrepLabel={getPrepLabel}

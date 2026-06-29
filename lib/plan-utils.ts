@@ -1,4 +1,5 @@
 import { getWeekBounds } from "@/lib/discipline-throw-stats";
+import { getWeekDays, getWeekStart } from "@/lib/week";
 import { getDisciplineIcon } from "@/lib/design";
 import {
   emptyPlannedSeries,
@@ -6,7 +7,6 @@ import {
   plannedSeriesToTrainingSeries,
 } from "@/lib/planned-series-utils";
 import {
-  formatDate,
   normalizeSession,
   normalizeSeries,
   todayISO,
@@ -18,7 +18,19 @@ import type { PhaseStatus, PhaseType, PlanPhase, PlannedSeries } from "@/types/p
 export const PLANS_STORAGE_KEY = "atlas-plans";
 const LEGACY_PLANS_STORAGE_KEY = "atlas-training-plans";
 
-const WEEKDAY_SHORT = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"] as const;
+export type { WeekDay } from "@/lib/week";
+export {
+  formatWeekRange,
+  getCurrentWeek,
+  getISOWeek,
+  getISOWeek as getISOWeekNumber,
+  getNextWeek,
+  getPreviousWeek,
+  getWeekDays,
+  getWeekEnd,
+  getWeekStart,
+  getWeekStart as getWeekStartISO,
+} from "@/lib/week";
 
 export const PHASE_TYPES: { value: PhaseType; label: string }[] = [
   { value: "training", label: "Trénink" },
@@ -35,13 +47,6 @@ export const PHASE_STATUS_LABELS: Record<PhaseStatus, string> = {
   skipped: "Vynecháno",
   changed: "Změněno",
 };
-
-export interface WeekDay {
-  iso: string;
-  weekday: string;
-  dayNumber: number;
-  isToday: boolean;
-}
 
 interface LegacyPlannedSeriesItem {
   id?: string;
@@ -60,13 +65,6 @@ interface LegacyTrainingPlan {
   note?: string;
   completed?: boolean;
   createdAt?: string;
-}
-
-function toISODateLocal(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 function isPhaseType(value: unknown): value is PhaseType {
@@ -133,39 +131,41 @@ function parseStoredPhases(raw: unknown): PlanPhase[] {
   });
 }
 
-export function getWeekDays(refDate: Date = new Date()): WeekDay[] {
-  const { start } = getWeekBounds(refDate);
-  const today = todayISO();
-
-  return WEEKDAY_SHORT.map((weekday, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    const iso = toISODateLocal(date);
-    return {
-      iso,
-      weekday,
-      dayNumber: date.getDate(),
-      isToday: iso === today,
-    };
-  });
+export function getPhasesForWeek(phases: PlanPhase[], weekStart: string): PlanPhase[] {
+  const days = getWeekDays(weekStart);
+  const daySet = new Set(days.map((day) => day.iso));
+  return phases.filter((phase) => daySet.has(phase.date));
 }
 
-export function formatWeekRange(refDate: Date = new Date()): string {
-  const { start, end } = getWeekBounds(refDate);
-  const endDay = end.getDate();
-  const endMonth = end.getMonth() + 1;
-  const endYear = end.getFullYear();
+export function formatWeekRangeShort(weekStart: string): string {
+  const ref = parseISODateFromISO(getWeekStart(weekStart));
+  const { start, end } = getWeekBounds(ref);
   const startDay = start.getDate();
   const startMonth = start.getMonth() + 1;
-  const startYear = start.getFullYear();
+  const endDay = end.getDate();
+  const endMonth = end.getMonth() + 1;
 
-  if (startYear === endYear && startMonth === endMonth) {
-    return `${startDay}. – ${endDay}. ${endMonth}. ${endYear}`;
+  if (startMonth === endMonth) {
+    return `${startDay}. – ${endDay}. ${endMonth}.`;
   }
-  if (startYear === endYear) {
-    return `${startDay}. ${startMonth}. – ${endDay}. ${endMonth}. ${endYear}`;
-  }
-  return `${formatDate(toISODateLocal(start))} – ${formatDate(toISODateLocal(end))}`;
+  return `${startDay}. ${startMonth}. – ${endDay}. ${endMonth}.`;
+}
+
+function parseISODateFromISO(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function shiftWeek(refDate: Date, weeks: number): Date {
+  const next = new Date(refDate);
+  next.setDate(next.getDate() + weeks * 7);
+  return next;
+}
+
+export function isSameWeek(a: Date, b: Date): boolean {
+  const { start: startA } = getWeekBounds(a);
+  const { start: startB } = getWeekBounds(b);
+  return startA.getTime() === startB.getTime();
 }
 
 export function emptyPhase(date: string = todayISO()): PlanPhase {

@@ -94,6 +94,7 @@ function loadProfileName(): string {
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("dashboard");
+  const [planEntryKey, setPlanEntryKey] = useState(0);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [phases, setPhases] = useState<PlanPhase[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -395,6 +396,9 @@ export default function Home() {
       setTrainingAutoStart(false);
       setTrainingHeaderTitle(null);
     }
+    if (newTab === "plan" && tab !== "plan") {
+      setPlanEntryKey((key) => key + 1);
+    }
     setTab(newTab);
   }
 
@@ -652,6 +656,7 @@ export default function Home() {
       case "plan":
         return (
           <PlanModule
+            planEntryKey={planEntryKey}
             phases={phases}
             seasons={seasons}
             templates={templates}

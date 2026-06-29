@@ -1,4 +1,6 @@
 import { daysUntil } from "@/lib/dashboard-utils";
+import { getDisciplineIcon } from "@/lib/design";
+import { getWeekEnd, getWeekStart } from "@/lib/week";
 import {
   computeBestValidAttempt,
   createDefaultAttempts,
@@ -328,6 +330,34 @@ export function getCompetitionsForDate(
   return getAllCompetitions(seasons)
     .filter((item) => item.date === iso && item.name.trim())
     .sort((a, b) => a.name.localeCompare(b.name, "cs"));
+}
+
+/** Competitions from Season whose date falls within the week starting on `weekStart`. */
+export function getCompetitionsForWeek(
+  seasons: Season[],
+  weekStart: string
+): Array<Competition & { year: number }> {
+  const start = getWeekStart(weekStart);
+  const end = getWeekEnd(weekStart);
+
+  return getAllCompetitions(seasons)
+    .filter((item) => item.name.trim() && item.date >= start && item.date <= end)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name, "cs"));
+}
+
+/** e.g. 🥏 Disk • 🔨 Kladivo — one line per competition, deduped disciplines. */
+export function formatCompetitionDisciplinesLine(competition: Competition): string {
+  const seen = new Set<string>();
+  const parts: string[] = [];
+
+  for (const result of competition.competitionResults) {
+    const key = result.discipline?.trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    parts.push(`${getDisciplineIcon(key)} ${getDisciplineLabel(key)}`);
+  }
+
+  return parts.join(" • ");
 }
 
 export function formatCompetitionDisciplinesCompact(competition: Competition): string {
