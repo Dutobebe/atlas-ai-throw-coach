@@ -47,7 +47,15 @@ import {
   saveLiveTrainingMeta,
   type LiveTrainingMeta,
 } from "@/lib/live-training-utils";
-import { getDayPlanText, hasDayPlan, loadPlans, normalizePhase, PLANS_STORAGE_KEY } from "@/lib/plan-utils";
+import {
+  getDayThrowingPlans,
+  getDayTrainingPhases,
+  getPhasePlanText,
+  getTrainingCategoryLabel,
+  loadPlans,
+  normalizePhase,
+  PLANS_STORAGE_KEY,
+} from "@/lib/plan-utils";
 import { parsePlanTextToSeries } from "@/lib/plan-text-parser";
 import {
   getNextCompetition,
@@ -223,10 +231,16 @@ export default function Home() {
     openTrainingWizard();
   }
 
-  function importDayPlanToDraft() {
-    const planText = getDayPlanText(phases, draft.date);
+  function importThrowingPlanToDraft(phaseId: string) {
+    const phase = phases.find((item) => item.id === phaseId);
+    if (!phase || (phase.trainingCategory ?? "Vrhy") !== "Vrhy") {
+      showToast("Převod je dostupný jen pro vrhačský plán");
+      return;
+    }
+
+    const planText = getPhasePlanText(phase);
     if (!planText.trim()) {
-      showToast("Pro tento den není plán");
+      showToast("Plán je prázdný");
       return;
     }
 
@@ -238,10 +252,12 @@ export default function Home() {
 
     setDraft({
       ...draft,
+      title: draft.title.trim() || phase.title.trim() || "Trénink podle plánu",
       series,
       disciplines: [...disciplineSet],
+      createdFromPlanId: phase.id,
     });
-    showToast("Plán dne načten — série lze upravit");
+    showToast("Plán převeden do sérií — můžeš upravit před zápisem");
   }
 
   function startLiveRecordingFromDraft() {
@@ -410,8 +426,31 @@ export default function Home() {
     setTab(newTab);
   }
 
-  const draftHasDayPlan = useMemo(
-    () => hasDayPlan(phases, draft.date),
+  const draftThrowingPlans = useMemo(
+    () =>
+      getDayThrowingPlans(phases, draft.date)
+        .filter((phase) => getPhasePlanText(phase).trim())
+        .map((phase) => ({
+          id: phase.id,
+          preview:
+            getPhasePlanText(phase)
+              .split(/\r?\n/)
+              .find((line) => line.trim())
+              ?.trim() ?? "",
+        })),
+    [phases, draft.date]
+  );
+
+  const draftOtherPlanNotes = useMemo(
+    () =>
+      getDayTrainingPhases(phases, draft.date)
+        .filter((phase) => (phase.trainingCategory ?? "Vrhy") !== "Vrhy")
+        .filter((phase) => getPhasePlanText(phase).trim())
+        .map((phase) => ({
+          id: phase.id,
+          category: getTrainingCategoryLabel(phase.trainingCategory),
+          planText: getPhasePlanText(phase),
+        })),
     [phases, draft.date]
   );
 
@@ -702,8 +741,9 @@ export default function Home() {
             isEditing={editingId !== null}
             templates={templates}
             autoStartWizard={trainingAutoStart}
-            hasDayPlan={draftHasDayPlan}
-            onImportDayPlan={importDayPlanToDraft}
+            throwingPlans={draftThrowingPlans}
+            otherPlanNotes={draftOtherPlanNotes}
+            onImportThrowingPlan={importThrowingPlanToDraft}
             onStartLiveRecording={startLiveRecordingFromDraft}
             hasActiveTraining={Boolean(liveMeta)}
             onChange={setDraft}

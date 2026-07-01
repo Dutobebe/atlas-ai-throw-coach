@@ -11,7 +11,7 @@ import {
 import { calculateWeekSummary } from "@/lib/planner/week-summary";
 import { getPhasesForWeek } from "@/lib/plan-utils";
 import { todayISO } from "@/lib/training-utils";
-import type { PlanPhase } from "@/types/plan";
+import type { PlanPhase, PlanTrainingCategory } from "@/types/plan";
 import type { Season, Competition } from "@/types/season";
 import PlanDaySection from "@/components/plan/PlanDaySection";
 
@@ -19,7 +19,9 @@ export interface PlannerProps {
   planEntryKey: number;
   phases: PlanPhase[];
   seasons: Season[];
-  onPlanTextChange: (date: string, text: string) => void;
+  onAddTraining: (date: string, category: PlanTrainingCategory) => void;
+  onPlanTextChange: (phaseId: string, text: string) => void;
+  onRemoveTraining: (phaseId: string) => void;
   onCompetitionClick?: (competition: Competition) => void;
 }
 
@@ -27,7 +29,9 @@ export default function Planner({
   planEntryKey,
   phases,
   seasons,
+  onAddTraining,
   onPlanTextChange,
+  onRemoveTraining,
   onCompetitionClick,
 }: PlannerProps) {
   const {
@@ -106,7 +110,9 @@ export default function Planner({
             day={day}
             phases={weekPhases}
             seasons={seasons}
+            onAddTraining={onAddTraining}
             onPlanTextChange={onPlanTextChange}
+            onRemoveTraining={onRemoveTraining}
             onCompetitionClick={onCompetitionClick}
             sectionRef={(el) => setDayRef(day.iso, el)}
           />

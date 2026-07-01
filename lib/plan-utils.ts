@@ -15,7 +15,7 @@ import {
   getDisciplineLabel,
 } from "@/lib/training-utils";
 import type { TrainingSession } from "@/types/training";
-import type { PhaseStatus, PhaseType, PlanPhase, PlannedSeries } from "@/types/plan";
+import type { PhaseStatus, PhaseType, PlanPhase, PlannedSeries, PlanTrainingCategory } from "@/types/plan";
 
 export const PLANS_STORAGE_KEY = "atlas-plans";
 const LEGACY_PLANS_STORAGE_KEY = "atlas-training-plans";
@@ -49,6 +49,34 @@ export const PHASE_STATUS_LABELS: Record<PhaseStatus, string> = {
   skipped: "Vynecháno",
   changed: "Změněno",
 };
+
+export const PLAN_TRAINING_CATEGORIES: { value: PlanTrainingCategory; label: string }[] = [
+  { value: "Vrhy", label: "Vrhy" },
+  { value: "Kardio", label: "Kardio" },
+  { value: "Síla", label: "Síla" },
+  { value: "Jiné", label: "Jiné" },
+];
+
+function isTrainingCategory(value: unknown): value is PlanTrainingCategory {
+  return value === "Vrhy" || value === "Kardio" || value === "Síla" || value === "Jiné";
+}
+
+export function getTrainingCategoryLabel(category?: PlanTrainingCategory): string {
+  return PLAN_TRAINING_CATEGORIES.find((item) => item.value === category)?.label ?? "Vrhy";
+}
+
+export function getPlanTextPlaceholder(category: PlanTrainingCategory): string {
+  switch (category) {
+    case "Vrhy":
+      return "Kladivo:\n6kg 2/2 8 hodů\n7,26kg 2/1 6 hodů\n\nDisk:\n1,5kg z místa 8 hodů";
+    case "Kardio":
+      return "např. 45 min běh v tempu, intervaly 6×3 min…";
+    case "Síla":
+      return "např. dřep 4×6, bench 3×8, shyby 3×10…";
+    default:
+      return "Volný popis tréninku…";
+  }
+}
 
 interface LegacyPlannedSeriesItem {
   id?: string;
@@ -171,15 +199,16 @@ export function isSameWeek(a: Date, b: Date): boolean {
   return startA.getTime() === startB.getTime();
 }
 
-export function emptyPhase(date: string = todayISO()): PlanPhase {
+export function emptyPhase(date: string = todayISO(), category: PlanTrainingCategory = "Vrhy"): PlanPhase {
   return {
     id: uid(),
     date,
-    title: "",
+    title: getTrainingCategoryLabel(category),
     type: "training",
     disciplines: [],
     plannedSeries: [],
     planText: "",
+    trainingCategory: category,
     goal: "",
     note: "",
     status: "planned",
@@ -230,21 +259,84 @@ function resolvePlanText(phase: PlanPhase): string {
   return phase.note?.trim() ?? "";
 }
 
-export function getDayPlanPhase(phases: PlanPhase[], date: string): PlanPhase | null {
-  const dayPhases = getPhasesForDate(phases, date);
-  return dayPhases.find((phase) => phase.type === "training") ?? null;
-}
-
-export function getDayPlanText(phases: PlanPhase[], date: string): string {
-  const phase = getDayPlanPhase(phases, date);
-  if (!phase) return "";
+export function getPhasePlanText(phase: PlanPhase): string {
   return resolvePlanText(phase);
 }
 
-export function hasDayPlan(phases: PlanPhase[], date: string): boolean {
-  return getDayPlanText(phases, date).trim().length > 0;
+export function getDayTrainingPhases(phases: PlanPhase[], date: string): PlanPhase[] {
+  return phases
+    .filter((phase) => phase.date === date && phase.type === "training")
+    .sort(
+      (a, b) =>
+        (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+        a.createdAt.localeCompare(b.createdAt)
+    );
 }
 
+export function getDayThrowingPlans(phases: PlanPhase[], date: string): PlanPhase[] {
+  return getDayTrainingPhases(phases, date).filter(
+    (phase) => (phase.trainingCategory ?? "Vrhy") === "Vrhy"
+  );
+}
+
+export function addTrainingPhase(
+  phases: PlanPhase[],
+  date: string,
+  category: PlanTrainingCategory
+): PlanPhase[] {
+  const dayPhases = getDayTrainingPhases(phases, date);
+  return [
+    ...phases,
+    normalizePhase({
+      ...emptyPhase(date, category),
+      sortOrder: dayPhases.length,
+    }),
+  ];
+}
+
+export function updatePhasePlanText(
+  phases: PlanPhase[],
+  phaseId: string,
+  text: string
+): PlanPhase[] {
+  return phases.map((phase) =>
+    phase.id === phaseId
+      ? normalizePhase({
+          ...phase,
+          planText: text,
+          plannedSeries: [],
+          title: phase.title.trim() || getTrainingCategoryLabel(phase.trainingCategory),
+        })
+      : phase
+  );
+}
+
+export function removeTrainingPhase(phases: PlanPhase[], phaseId: string): PlanPhase[] {
+  return phases.filter((phase) => phase.id !== phaseId);
+}
+
+/** @deprecated first training phase only — use getDayTrainingPhases */
+export function getDayPlanPhase(phases: PlanPhase[], date: string): PlanPhase | null {
+  const dayPhases = getDayTrainingPhases(phases, date);
+  return dayPhases[0] ?? null;
+}
+
+export function getDayPlanText(phases: PlanPhase[], date: string): string {
+  const throwing = getDayThrowingPlans(phases, date).find((phase) => resolvePlanText(phase).trim());
+  if (throwing) return resolvePlanText(throwing);
+  const first = getDayTrainingPhases(phases, date).find((phase) => resolvePlanText(phase).trim());
+  return first ? resolvePlanText(first) : "";
+}
+
+export function hasDayPlan(phases: PlanPhase[], date: string): boolean {
+  return getDayTrainingPhases(phases, date).some((phase) => resolvePlanText(phase).trim().length > 0);
+}
+
+export function hasThrowingDayPlan(phases: PlanPhase[], date: string): boolean {
+  return getDayThrowingPlans(phases, date).some((phase) => resolvePlanText(phase).trim().length > 0);
+}
+
+/** @deprecated use addTrainingPhase + updatePhasePlanText */
 export function setDayPlanText(phases: PlanPhase[], date: string, text: string): PlanPhase[] {
   const existing = getDayPlanPhase(phases, date);
   const trimmed = text;
@@ -255,27 +347,13 @@ export function setDayPlanText(phases: PlanPhase[], date: string, text: string):
   }
 
   if (existing) {
-    return phases.map((phase) =>
-      phase.id === existing.id
-        ? normalizePhase({
-            ...phase,
-            planText: trimmed,
-            plannedSeries: [],
-            note: "",
-            title: phase.title.trim() || "Trénink",
-          })
-        : phase
-    );
+    return updatePhasePlanText(phases, existing.id, trimmed);
   }
 
-  return [
-    ...phases,
-    normalizePhase({
-      ...emptyPhase(date),
-      planText: trimmed,
-      title: "Trénink",
-    }),
-  ];
+  const withNew = addTrainingPhase(phases, date, "Vrhy");
+  const added = withNew.find((phase) => !phases.some((old) => old.id === phase.id));
+  if (!added) return withNew;
+  return updatePhasePlanText(withNew, added.id, trimmed);
 }
 
 export function normalizePhase(phase: PlanPhase): PlanPhase {
@@ -294,6 +372,13 @@ export function normalizePhase(phase: PlanPhase): PlanPhase {
     disciplines: Array.isArray(phase.disciplines) ? phase.disciplines : [],
     plannedSeries: plannedSeries.map((series) => normalizePlannedSeries(series)),
     planText,
+    trainingCategory:
+      (isPhaseType(phase.type) ? phase.type : "training") === "training"
+        ? isTrainingCategory(phase.trainingCategory)
+          ? phase.trainingCategory
+          : "Vrhy"
+        : undefined,
+    sortOrder: typeof phase.sortOrder === "number" ? phase.sortOrder : undefined,
     goal: phase.goal ?? "",
     note: phase.note ?? "",
     status: isPhaseStatus(phase.status) ? phase.status : "planned",
@@ -310,14 +395,20 @@ export function convertDayPlanToTraining(
   session: TrainingSession | null;
   updatedPhases: PlanPhase[];
 } {
-  const planText = getDayPlanText(phases, date);
+  const phase =
+    getDayThrowingPlans(phases, date).find((item) => resolvePlanText(item).trim()) ??
+    getDayTrainingPhases(phases, date).find((item) => resolvePlanText(item).trim()) ??
+    null;
+  const planText = phase ? resolvePlanText(phase) : "";
   if (!planText.trim()) {
     return { session: null, updatedPhases: phases };
   }
 
-  const phase = getDayPlanPhase(phases, date);
   const sessionId = uid();
-  const parsedSeries = parsePlanTextToSeries(planText);
+  const parsedSeries =
+    (phase?.trainingCategory ?? "Vrhy") === "Vrhy"
+      ? parsePlanTextToSeries(planText)
+      : [];
   const disciplineSet = new Set(parsedSeries.map((item) => item.discipline).filter(Boolean));
 
   const session = normalizeSession({
@@ -328,7 +419,10 @@ export function convertDayPlanToTraining(
     weather: "",
     readiness: 70,
     rpe: 5,
-    note: "",
+    note:
+      (phase?.trainingCategory ?? "Vrhy") !== "Vrhy"
+        ? planText
+        : "",
     disciplines: [...disciplineSet],
     sessionType: phase?.type ?? "training",
     series: parsedSeries,
@@ -359,7 +453,8 @@ export function convertPhaseToTraining(phase: PlanPhase): {
 } {
   const planText = resolvePlanText(phase);
   const sessionId = uid();
-  const parsedSeries = planText
+  const isThrowing = (phase.trainingCategory ?? "Vrhy") === "Vrhy";
+  const parsedSeries = isThrowing && planText
     ? parsePlanTextToSeries(planText)
     : (Array.isArray(phase.plannedSeries) ? phase.plannedSeries : []).map((s) =>
         normalizeSeries(plannedSeriesToTrainingSeries(s))
@@ -378,12 +473,14 @@ export function convertPhaseToTraining(phase: PlanPhase): {
     weather: "",
     readiness: 70,
     rpe: 5,
-    note: phase.note ?? "",
+    note: !isThrowing && planText ? planText : phase.note ?? "",
     disciplines: [...disciplineSet],
     sessionType: phase.type,
     series: parsedSeries.length
       ? parsedSeries
-      : [normalizeSeries(plannedSeriesToTrainingSeries(emptyPlannedSeries()))],
+      : isThrowing
+        ? [normalizeSeries(plannedSeriesToTrainingSeries(emptyPlannedSeries()))]
+        : [],
     createdAt: new Date().toISOString(),
     createdFromPlanId: phase.id,
   });
@@ -478,13 +575,22 @@ export function duplicatePhase(phase: PlanPhase, date?: string): PlanPhase {
 }
 
 export function getTodayPhaseSummary(phases: PlanPhase[]): string | null {
-  const planText = getDayPlanText(phases, todayISO());
-  if (!planText.trim()) return null;
+  const todayTrainings = getDayTrainingPhases(phases, todayISO());
+  if (todayTrainings.length === 0) return null;
 
+  if (todayTrainings.length > 1) {
+    return `${todayTrainings.length} tréninků dnes`;
+  }
+
+  const phase = todayTrainings[0];
+  const category = getTrainingCategoryLabel(phase.trainingCategory);
+  const planText = resolvePlanText(phase);
   const firstLine = planText.split(/\r?\n/).find((line) => line.trim())?.trim();
-  if (!firstLine) return "Plán na dnešek";
 
-  return firstLine.length > 48 ? `${firstLine.slice(0, 45)}…` : firstLine;
+  if (!firstLine) return category;
+
+  const preview = firstLine.length > 40 ? `${firstLine.slice(0, 37)}…` : firstLine;
+  return `${category}: ${preview}`;
 }
 
 /** @deprecated use getTodayPhaseSummary */

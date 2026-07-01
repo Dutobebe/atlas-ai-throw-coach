@@ -2253,6 +2253,129 @@ body {
   white-space: pre-wrap;
 }
 
+.plan-day-trainings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plan-day-empty-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.plan-training-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.plan-training-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-training-item-badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.plan-training-item-index {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.plan-training-item-remove {
+  margin-left: auto;
+}
+
+.plan-day-add-training {
+  align-self: flex-start;
+  width: auto;
+}
+
+.training-plan-import {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.training-plan-import-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.training-plan-import-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.training-plan-import-btn {
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  min-height: 44px;
+}
+
+.training-plan-import-preview {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.training-plan-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.training-plan-note-card {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.training-plan-note-category {
+  display: inline-block;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.training-plan-note-text {
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}
+
 .plan-day-competitions {
   margin-bottom: 4px;
 }

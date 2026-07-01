@@ -8,11 +8,23 @@ import type { TrainingSession } from "@/types/training";
 import TemplatePicker from "@/components/templates/TemplatePicker";
 import TrainingSeriesSummaryCard from "@/components/training/TrainingSeriesSummaryCard";
 
+export interface ThrowingPlanOption {
+  id: string;
+  preview: string;
+}
+
+export interface OtherPlanNote {
+  id: string;
+  category: string;
+  planText: string;
+}
+
 interface TrainingSeriesListStepProps {
   session: TrainingSession;
   templates: TrainingTemplate[];
-  hasDayPlan: boolean;
-  onImportDayPlan: () => void;
+  throwingPlans: ThrowingPlanOption[];
+  otherPlanNotes: OtherPlanNote[];
+  onImportThrowingPlan: (phaseId: string) => void;
   onStartLiveRecording: () => void;
   onChange: (session: TrainingSession) => void;
   onEditSeries: (index: number) => void;
@@ -21,19 +33,29 @@ interface TrainingSeriesListStepProps {
 export default function TrainingSeriesListStep({
   session,
   templates,
-  hasDayPlan,
-  onImportDayPlan,
+  throwingPlans,
+  otherPlanNotes,
+  onImportThrowingPlan,
   onStartLiveRecording,
   onChange,
   onEditSeries,
 }: TrainingSeriesListStepProps) {
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
 
   function addSeries() {
     const defaultDiscipline = session.disciplines[0] ?? "disk";
-    onChange({ ...session, series: [...session.series, emptySeries(defaultDiscipline, { sessionType: session.sessionType })] });
+    onChange({
+      ...session,
+      series: [
+        ...session.series,
+        emptySeries(defaultDiscipline, { sessionType: session.sessionType }),
+      ],
+    });
     onEditSeries(session.series.length);
   }
+
+  const showThrowingImport = throwingPlans.length > 0 && !manualMode;
 
   return (
     <div className="training-wizard-step">
@@ -46,22 +68,55 @@ export default function TrainingSeriesListStep({
             type="button"
             className="btn btn-secondary btn-sm"
             style={{ width: "auto" }}
-            onClick={onImportDayPlan}
-            disabled={!hasDayPlan}
-            title={hasDayPlan ? undefined : "Pro zvolené datum není v plánu žádný text"}
-          >
-            Převzít plán dne
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            style={{ width: "auto" }}
             onClick={() => setTemplateOpen(true)}
           >
             Šablona
           </button>
         </div>
       </div>
+
+      {showThrowingImport && (
+        <div className="training-plan-import">
+          <p className="training-plan-import-title">Plán — Vrhy</p>
+          <p className="training-wizard-hint">
+            Můžeš převzít vrhačský plán a převést ho do sérií, nebo zapsat trénink ručně.
+          </p>
+          <div className="training-plan-import-actions">
+            {throwingPlans.map((plan) => (
+              <button
+                key={plan.id}
+                type="button"
+                className="btn btn-primary btn-sm training-plan-import-btn"
+                onClick={() => onImportThrowingPlan(plan.id)}
+              >
+                Převzít plán a převést do sérií
+                {throwingPlans.length > 1 && plan.preview ? (
+                  <span className="training-plan-import-preview">{plan.preview}</span>
+                ) : null}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm training-plan-import-btn"
+              onClick={() => setManualMode(true)}
+            >
+              Zapsat trénink manuálně
+            </button>
+          </div>
+        </div>
+      )}
+
+      {otherPlanNotes.length > 0 && (
+        <div className="training-plan-notes">
+          <p className="training-plan-import-title">Plán — ostatní tréninky</p>
+          {otherPlanNotes.map((note) => (
+            <div key={note.id} className="training-plan-note-card">
+              <span className="training-plan-note-category">{note.category}</span>
+              <pre className="training-plan-note-text">{note.planText}</pre>
+            </div>
+          ))}
+        </div>
+      )}
 
       <TemplatePicker
         open={templateOpen}

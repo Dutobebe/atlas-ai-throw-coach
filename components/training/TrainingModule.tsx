@@ -14,7 +14,10 @@ import type { TrainingEvaluation, TrainingSession } from "@/types/training";
 import TrainingSeriesCard from "./TrainingSeriesCard";
 import TrainingEvaluationScreen from "@/components/evaluation/TrainingEvaluationScreen";
 import TrainingBasicsStep from "./wizard/TrainingBasicsStep";
-import TrainingSeriesListStep from "./wizard/TrainingSeriesListStep";
+import TrainingSeriesListStep, {
+  type OtherPlanNote,
+  type ThrowingPlanOption,
+} from "./wizard/TrainingSeriesListStep";
 import TrainingSummaryStep from "./wizard/TrainingSummaryStep";
 
 interface TrainingModuleProps {
@@ -22,8 +25,9 @@ interface TrainingModuleProps {
   isEditing: boolean;
   templates: TrainingTemplate[];
   autoStartWizard?: boolean;
-  hasDayPlan: boolean;
-  onImportDayPlan: () => void;
+  throwingPlans: ThrowingPlanOption[];
+  otherPlanNotes: OtherPlanNote[];
+  onImportThrowingPlan: (phaseId: string) => void;
   onStartLiveRecording: () => void;
   onChange: (session: TrainingSession) => void;
   onSave: () => void;
@@ -40,8 +44,9 @@ export default function TrainingModule({
   isEditing,
   templates,
   autoStartWizard = false,
-  hasDayPlan,
-  onImportDayPlan,
+  throwingPlans,
+  otherPlanNotes,
+  onImportThrowingPlan,
   onStartLiveRecording,
   onChange,
   onSave,
@@ -181,8 +186,9 @@ export default function TrainingModule({
         <TrainingSeriesListStep
           session={session}
           templates={templates}
-          hasDayPlan={hasDayPlan}
-          onImportDayPlan={onImportDayPlan}
+          throwingPlans={throwingPlans}
+          otherPlanNotes={otherPlanNotes}
+          onImportThrowingPlan={onImportThrowingPlan}
           onStartLiveRecording={onStartLiveRecording}
           onChange={onChange}
           onEditSeries={(index) => {

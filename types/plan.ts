@@ -9,6 +9,9 @@ export type PhaseType =
 
 export type PhaseStatus = "planned" | "started" | "completed" | "changed" | "skipped";
 
+/** User-facing training bucket for plan items (type === training). */
+export type PlanTrainingCategory = "Vrhy" | "Kardio" | "Síla" | "Jiné";
+
 /** Planned workload in Plán — no achieved results (no bestThrow). */
 export interface PlannedSeries {
   id: string;
@@ -33,6 +36,10 @@ export interface PlanPhase {
   plannedSeries: PlannedSeries[];
   /** Free-text daily plan (note-style) */
   planText: string;
+  /** Vrhy / Kardio / Síla / Jiné — only for type === "training" */
+  trainingCategory?: PlanTrainingCategory;
+  /** Order within the same day (lower first) */
+  sortOrder?: number;
   goal: string;
   note: string;
   status: PhaseStatus;

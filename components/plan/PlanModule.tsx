@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback } from "react";
-import { setDayPlanText } from "@/lib/plan-utils";
-import type { PlanPhase } from "@/types/plan";
+import {
+  addTrainingPhase,
+  removeTrainingPhase,
+  updatePhasePlanText,
+} from "@/lib/plan-utils";
+import type { PlanPhase, PlanTrainingCategory } from "@/types/plan";
 import type { Season, Competition } from "@/types/season";
 import WeeklyPlanner from "./WeeklyPlanner";
 
@@ -21,9 +25,23 @@ export default function PlanModule({
   onPhasesChange,
   onCompetitionClick,
 }: PlanModuleProps) {
+  const handleAddTraining = useCallback(
+    (date: string, category: PlanTrainingCategory) => {
+      onPhasesChange(addTrainingPhase(phases, date, category));
+    },
+    [phases, onPhasesChange]
+  );
+
   const handlePlanTextChange = useCallback(
-    (date: string, text: string) => {
-      onPhasesChange(setDayPlanText(phases, date, text));
+    (phaseId: string, text: string) => {
+      onPhasesChange(updatePhasePlanText(phases, phaseId, text));
+    },
+    [phases, onPhasesChange]
+  );
+
+  const handleRemoveTraining = useCallback(
+    (phaseId: string) => {
+      onPhasesChange(removeTrainingPhase(phases, phaseId));
     },
     [phases, onPhasesChange]
   );
@@ -33,7 +51,9 @@ export default function PlanModule({
       planEntryKey={planEntryKey}
       phases={phases}
       seasons={seasons}
+      onAddTraining={handleAddTraining}
       onPlanTextChange={handlePlanTextChange}
+      onRemoveTraining={handleRemoveTraining}
       onCompetitionClick={onCompetitionClick}
     />
   );
