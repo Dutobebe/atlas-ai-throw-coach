@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, type Dispatch, type SetStateAction } from "react";
 import {
   addTrainingPhase,
   removeTrainingPhase,
@@ -14,7 +14,7 @@ interface PlanModuleProps {
   planEntryKey: number;
   phases: PlanPhase[];
   seasons: Season[];
-  onPhasesChange: (phases: PlanPhase[]) => void;
+  onPhasesChange: Dispatch<SetStateAction<PlanPhase[]>>;
   onCompetitionClick?: (competition: Competition) => void;
 }
 
@@ -34,9 +34,9 @@ export default function PlanModule({
 
   const handlePlanTextChange = useCallback(
     (phaseId: string, text: string) => {
-      onPhasesChange(updatePhasePlanText(phases, phaseId, text));
+      onPhasesChange((prev) => updatePhasePlanText(prev, phaseId, text));
     },
-    [phases, onPhasesChange]
+    [onPhasesChange]
   );
 
   const handleRemoveTraining = useCallback(

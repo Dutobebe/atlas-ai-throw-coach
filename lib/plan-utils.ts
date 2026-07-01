@@ -248,15 +248,16 @@ function plannedSeriesToPlanText(series: PlannedSeries[]): string {
 }
 
 function resolvePlanText(phase: PlanPhase): string {
-  if (phase.planText?.trim()) return phase.planText.trim();
-  if (phase.note?.trim() && !phase.plannedSeries?.length) return phase.note.trim();
+  if (typeof phase.planText === "string") {
+    return phase.planText;
+  }
 
   const fromSeries = plannedSeriesToPlanText(
     Array.isArray(phase.plannedSeries) ? phase.plannedSeries : []
   );
   if (fromSeries) return fromSeries;
 
-  return phase.note?.trim() ?? "";
+  return phase.note ?? "";
 }
 
 export function getPhasePlanText(phase: PlanPhase): string {
@@ -301,12 +302,11 @@ export function updatePhasePlanText(
 ): PlanPhase[] {
   return phases.map((phase) =>
     phase.id === phaseId
-      ? normalizePhase({
+      ? {
           ...phase,
           planText: text,
           plannedSeries: [],
-          title: phase.title.trim() || getTrainingCategoryLabel(phase.trainingCategory),
-        })
+        }
       : phase
   );
 }
@@ -358,11 +358,14 @@ export function setDayPlanText(phases: PlanPhase[], date: string, text: string):
 
 export function normalizePhase(phase: PlanPhase): PlanPhase {
   const plannedSeries = Array.isArray(phase.plannedSeries) ? phase.plannedSeries : [];
-  const planText =
-    phase.planText?.trim() ||
-    (plannedSeries.length > 0 ? plannedSeriesToPlanText(plannedSeries) : "") ||
-    phase.note?.trim() ||
-    "";
+  let planText = typeof phase.planText === "string" ? phase.planText : "";
+
+  // Legacy: derive free text only when planText was never stored
+  if (planText === "" && plannedSeries.length > 0) {
+    planText = plannedSeriesToPlanText(plannedSeries);
+  } else if (planText === "" && phase.note?.trim()) {
+    planText = phase.note;
+  }
 
   return {
     ...phase,

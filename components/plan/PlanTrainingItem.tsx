@@ -40,8 +40,9 @@ export default function PlanTrainingItem({
         className="form-input plan-day-textarea"
         rows={category === "Vrhy" ? 6 : 4}
         placeholder={placeholder}
-        value={phase.planText}
+        value={phase.planText ?? ""}
         onChange={(e) => onPlanTextChange(phase.id, e.target.value)}
+        onKeyDown={(e) => e.stopPropagation()}
         aria-label={`Plán — ${label}`}
       />
     </div>
