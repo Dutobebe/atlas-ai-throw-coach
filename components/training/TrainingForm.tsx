@@ -42,12 +42,15 @@ export default function TrainingForm({
   }
 
   function addSeries() {
-    onChange({ ...session, series: [...session.series, emptySeries()] });
+    onChange({ ...session, series: [...session.series, emptySeries(undefined, { sessionType: session.sessionType })] });
   }
 
   function removeSeries(index: number) {
     const next = session.series.filter((_, i) => i !== index);
-    onChange({ ...session, series: next.length ? next : [emptySeries()] });
+    onChange({
+      ...session,
+      series: next.length ? next : [emptySeries(undefined, { sessionType: session.sessionType })],
+    });
   }
 
   return (

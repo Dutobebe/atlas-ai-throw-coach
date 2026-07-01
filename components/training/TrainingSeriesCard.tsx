@@ -6,7 +6,6 @@ import {
   SERIES_PURPOSES,
   SERIES_TYPES,
   calculateSeriesStats,
-  DEFAULT_INTENSITY_PERCENT,
   getSeriesIntensityPercent,
   isImitationSeries,
   isThrowSeries,
@@ -18,6 +17,7 @@ import { resolveTechniqueForDiscipline } from "@/lib/technique-library";
 import { filterGoalsForDiscipline } from "@/lib/goal-library";
 import type { SeriesType, TrainingSeries } from "@/types/training";
 import IntensityBadge from "@/components/common/IntensityBadge";
+import IntensitySelector from "./IntensitySelector";
 import ImplementSelector from "./ImplementSelector";
 import TechniqueSelector from "./TechniqueSelector";
 import SeriesGoalSelector from "./SeriesGoalSelector";
@@ -167,21 +167,9 @@ export default function TrainingSeriesCard({
           <span>Intenzita</span>
           <IntensityBadge value={intensity} />
         </label>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={0}
-          max={100}
-          step={5}
-          className="form-input"
+        <IntensitySelector
           value={intensity}
-          onChange={(e) => {
-            const raw = parseInt(e.target.value, 10);
-            const next = isNaN(raw)
-              ? DEFAULT_INTENSITY_PERCENT
-              : Math.min(100, Math.max(0, raw));
-            updateField("intensityPercent", next);
-          }}
+          onChange={(intensityPercent) => updateField("intensityPercent", intensityPercent)}
         />
       </div>
 

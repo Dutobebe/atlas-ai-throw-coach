@@ -1,4 +1,5 @@
 import { getIntensityColor } from "@/lib/design";
+import { formatIntensityDisplay } from "@/lib/intensity-presets";
 
 interface IntensityBadgeProps {
   value: number;
@@ -13,7 +14,7 @@ export default function IntensityBadge({ value, className = "" }: IntensityBadge
       className={`badge badge-intensity${className ? ` ${className}` : ""}`}
       style={{ color, backgroundColor: `${color}22` }}
     >
-      {value} %
+      {formatIntensityDisplay(value)}
     </span>
   );
 }

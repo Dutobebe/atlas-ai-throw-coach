@@ -145,7 +145,7 @@ export default function LiveTrainingScreen({
 
   function startAddSeries() {
     const defaultDiscipline = session.disciplines[0] ?? "disk";
-    setAddingSeries(emptySeries(defaultDiscipline));
+    setAddingSeries(emptySeries(defaultDiscipline, { sessionType: session.sessionType }));
   }
 
   function confirmAddSeries(series: TrainingSeries) {

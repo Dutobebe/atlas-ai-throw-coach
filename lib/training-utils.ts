@@ -3,6 +3,10 @@ import type { SeriesPurpose, SeriesStats, SeriesType, Throw, TrainingSeries, Tra
 import { getImplementPresets, resolveImplementForDiscipline } from "@/lib/implement-options";
 import { normalizeSeriesGoals } from "@/lib/goal-library";
 import { normalizeEvaluation } from "@/lib/evaluation-utils";
+import {
+  DEFAULT_RACE_INTENSITY_PERCENT,
+  DEFAULT_TECHNIQUE_INTENSITY_PERCENT,
+} from "@/lib/intensity-presets";
 
 export const DISCIPLINES = [
   { value: "disk", label: "Disk" },
@@ -37,7 +41,17 @@ export const SERIES_TYPE_LABELS: Record<SeriesType, string> = {
 };
 
 export const IMI_IMPLEMENT_VALUE = "IMI";
-export const DEFAULT_INTENSITY_PERCENT = 80;
+export const DEFAULT_INTENSITY_PERCENT = DEFAULT_TECHNIQUE_INTENSITY_PERCENT;
+
+export function getDefaultIntensityPercent(options?: {
+  sessionType?: PhaseType;
+  purpose?: SeriesPurpose;
+}): number {
+  if (options?.sessionType === "competition" || options?.purpose === "competition") {
+    return DEFAULT_RACE_INTENSITY_PERCENT;
+  }
+  return DEFAULT_TECHNIQUE_INTENSITY_PERCENT;
+}
 
 export const TAB_LABELS = {
   dashboard: "Přehled",
@@ -179,7 +193,11 @@ export function getSessionTypeLabel(value: PhaseType | string): string {
   return SESSION_TYPES.find((item) => item.value === value)?.label ?? value;
 }
 
-export function emptySeries(discipline = "disk"): TrainingSeries {
+export function emptySeries(
+  discipline = "disk",
+  options?: { sessionType?: PhaseType; purpose?: SeriesPurpose }
+): TrainingSeries {
+  const purpose = options?.purpose ?? "technique";
   return {
     id: uid(),
     seriesType: "Throw",
@@ -188,10 +206,10 @@ export function emptySeries(discipline = "disk"): TrainingSeries {
     implementWeight: getImplementPresets(discipline || "disk")[0] ?? "",
     throwCount: 0,
     bestThrow: "",
-    purpose: "technique",
+    purpose,
     note: "",
     goals: [],
-    intensityPercent: DEFAULT_INTENSITY_PERCENT,
+    intensityPercent: getDefaultIntensityPercent({ sessionType: options?.sessionType, purpose }),
   };
 }
 

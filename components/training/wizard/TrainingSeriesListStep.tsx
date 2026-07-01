@@ -25,7 +25,7 @@ export default function TrainingSeriesListStep({
 
   function addSeries() {
     const defaultDiscipline = session.disciplines[0] ?? "disk";
-    onChange({ ...session, series: [...session.series, emptySeries(defaultDiscipline)] });
+    onChange({ ...session, series: [...session.series, emptySeries(defaultDiscipline, { sessionType: session.sessionType })] });
     onEditSeries(session.series.length);
   }
 

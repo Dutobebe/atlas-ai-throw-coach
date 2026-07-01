@@ -22,7 +22,7 @@ export interface TrainingSeries {
   note: string;
   /** Series focus goals from goal library (1–3 labels) */
   goals: string[];
-  /** Training intensity 0–100, default 80 */
+  /** Training intensity 0–100, default 70 (technique) or 100 (race/competition) */
   intensityPercent?: number;
   /** @deprecated legacy distance list — migrated to throwCount / bestThrow on load */
   throws?: Throw[];
