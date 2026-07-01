@@ -58,7 +58,6 @@ export const TAB_LABELS = {
   plan: "Plán",
   season: "Sezóna",
   training: "Trénink",
-  quickCapture: "Rychlý zápis",
   live: "Aktivní trénink",
   evaluation: "Vyhodnocení tréninku",
   performance: "Výkony",

@@ -23,7 +23,6 @@ interface DashboardProps {
   onStartTraining: () => void;
   onViewSession?: (session: TrainingSession) => void;
   onOpenSeason?: () => void;
-  onQuickCapture?: () => void;
 }
 
 export default function Dashboard({
@@ -36,7 +35,6 @@ export default function Dashboard({
   onStartTraining,
   onViewSession,
   onOpenSeason,
-  onQuickCapture,
 }: DashboardProps) {
   const lastTraining = useMemo(() => getLastTraining(sessions), [sessions]);
   const todayPlanTitle = useMemo(() => getTodayPhaseSummary(phases), [phases]);
@@ -52,7 +50,6 @@ export default function Dashboard({
       <TodayCard
         plannedTraining={todayPlanTitle}
         onStartTraining={onStartTraining}
-        onQuickCapture={onQuickCapture}
       />
       <NextEventCard competition={nextCompetition} onOpenSeason={onOpenSeason} />
       <LastTrainingCard session={lastTraining} onView={onViewSession} />

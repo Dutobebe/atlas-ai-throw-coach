@@ -22,6 +22,9 @@ interface TrainingModuleProps {
   isEditing: boolean;
   templates: TrainingTemplate[];
   autoStartWizard?: boolean;
+  hasDayPlan: boolean;
+  onImportDayPlan: () => void;
+  onStartLiveRecording: () => void;
   onChange: (session: TrainingSession) => void;
   onSave: () => void;
   onSaveWithEvaluation: (evaluation: TrainingEvaluation) => void;
@@ -37,6 +40,9 @@ export default function TrainingModule({
   isEditing,
   templates,
   autoStartWizard = false,
+  hasDayPlan,
+  onImportDayPlan,
+  onStartLiveRecording,
   onChange,
   onSave,
   onSaveWithEvaluation,
@@ -175,6 +181,9 @@ export default function TrainingModule({
         <TrainingSeriesListStep
           session={session}
           templates={templates}
+          hasDayPlan={hasDayPlan}
+          onImportDayPlan={onImportDayPlan}
+          onStartLiveRecording={onStartLiveRecording}
           onChange={onChange}
           onEditSeries={(index) => {
             setSeriesEditorIndex(index);

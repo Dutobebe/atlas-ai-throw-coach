@@ -8,10 +8,7 @@ import {
   buildPlannerEventsForDate,
   calculateDayStripState,
 } from "@/lib/planner";
-import {
-  calculateWeekSummary,
-  defaultAddTrainingDate,
-} from "@/lib/planner/week-summary";
+import { calculateWeekSummary } from "@/lib/planner/week-summary";
 import { getPhasesForWeek } from "@/lib/plan-utils";
 import { todayISO } from "@/lib/training-utils";
 import type { PlanPhase } from "@/types/plan";
@@ -22,20 +19,16 @@ export interface PlannerProps {
   planEntryKey: number;
   phases: PlanPhase[];
   seasons: Season[];
-  getPrepLabel: (competitionPrepId?: string) => string | null;
-  onPhaseClick: (phase: PlanPhase) => void;
+  onPlanTextChange: (date: string, text: string) => void;
   onCompetitionClick?: (competition: Competition) => void;
-  onAddPhase: (date: string) => void;
 }
 
 export default function Planner({
   planEntryKey,
   phases,
   seasons,
-  getPrepLabel,
-  onPhaseClick,
+  onPlanTextChange,
   onCompetitionClick,
-  onAddPhase,
 }: PlannerProps) {
   const {
     selectedWeekStart,
@@ -81,10 +74,6 @@ export default function Planner({
     });
   }, [goToCurrentWeek]);
 
-  const handleAddTraining = useCallback(() => {
-    onAddPhase(defaultAddTrainingDate(weekDays, todayISO()));
-  }, [onAddPhase, weekDays]);
-
   const selectDay = useCallback((iso: string) => {
     setFocusedDate(iso);
     requestAnimationFrame(() => {
@@ -101,7 +90,6 @@ export default function Planner({
         onPrevious={previousWeek}
         onNext={nextWeek}
         onToday={handleToday}
-        onAddTraining={handleAddTraining}
       />
 
       <WeekStrip
@@ -118,10 +106,8 @@ export default function Planner({
             day={day}
             phases={weekPhases}
             seasons={seasons}
-            getPrepLabel={getPrepLabel}
-            onPhaseClick={onPhaseClick}
+            onPlanTextChange={onPlanTextChange}
             onCompetitionClick={onCompetitionClick}
-            onAddPhase={onAddPhase}
             sectionRef={(el) => setDayRef(day.iso, el)}
           />
         ))}

@@ -7,13 +7,11 @@ import { formatTodayLong } from "@/lib/dashboard-utils";
 interface TodayCardProps {
   plannedTraining?: string | null;
   onStartTraining: () => void;
-  onQuickCapture?: () => void;
 }
 
 export default function TodayCard({
   plannedTraining,
   onStartTraining,
-  onQuickCapture,
 }: TodayCardProps) {
   return (
     <SectionCard className="dashboard-card">
@@ -30,15 +28,6 @@ export default function TodayCard({
       <button type="button" className="btn btn-primary dashboard-start-btn" onClick={onStartTraining}>
         ▶ Začít trénink
       </button>
-      {onQuickCapture && (
-        <button
-          type="button"
-          className="btn btn-secondary dashboard-quick-btn"
-          onClick={onQuickCapture}
-        >
-          ⚡ Rychlý zápis
-        </button>
-      )}
     </SectionCard>
   );
 }

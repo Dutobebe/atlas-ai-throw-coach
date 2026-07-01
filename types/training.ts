@@ -83,7 +83,6 @@ export type Tab =
   | "plan"
   | "season"
   | "training"
-  | "quickCapture"
   | "live"
   | "evaluation"
   | "performance"

@@ -1,6 +1,7 @@
 import { getWeekBounds } from "@/lib/discipline-throw-stats";
 import { getWeekDays, getWeekStart } from "@/lib/week";
 import { getDisciplineIcon } from "@/lib/design";
+import { parsePlanTextToSeries } from "@/lib/plan-text-parser";
 import {
   emptyPlannedSeries,
   normalizePlannedSeries,
@@ -11,6 +12,7 @@ import {
   normalizeSeries,
   todayISO,
   uid,
+  getDisciplineLabel,
 } from "@/lib/training-utils";
 import type { TrainingSession } from "@/types/training";
 import type { PhaseStatus, PhaseType, PlanPhase, PlannedSeries } from "@/types/plan";
@@ -110,6 +112,7 @@ function migrateLegacyPlan(plan: LegacyTrainingPlan): PlanPhase {
     type: "training",
     disciplines: Array.isArray(plan.disciplines) ? plan.disciplines : [],
     plannedSeries: migrateLegacySeries(plan.plannedSeries),
+    planText: "",
     goal: plan.goal ?? "",
     note: plan.notes ?? plan.note ?? "",
     status: plan.completed ? "completed" : "planned",
@@ -175,7 +178,8 @@ export function emptyPhase(date: string = todayISO()): PlanPhase {
     title: "",
     type: "training",
     disciplines: [],
-    plannedSeries: [emptyPlannedSeries()],
+    plannedSeries: [],
+    planText: "",
     goal: "",
     note: "",
     status: "planned",
@@ -183,8 +187,104 @@ export function emptyPhase(date: string = todayISO()): PlanPhase {
   };
 }
 
+function plannedSeriesToPlanText(series: PlannedSeries[]): string {
+  const lines: string[] = [];
+  let lastDiscipline = "";
+
+  for (const item of series) {
+    if (!item.discipline && !item.technique && item.throwCount <= 0 && !item.note) {
+      continue;
+    }
+
+    if (item.discipline && item.discipline !== lastDiscipline) {
+      if (lines.length > 0) lines.push("");
+      lines.push(`${getDisciplineLabel(item.discipline)}:`);
+      lastDiscipline = item.discipline;
+    }
+
+    const parts: string[] = [];
+    if (item.implementWeight) {
+      parts.push(item.implementWeight.replace(/\s+/g, ""));
+    }
+    if (item.technique) parts.push(item.technique);
+    if (item.throwCount > 0) parts.push(`${item.throwCount} hodů`);
+    if (parts.length > 0) {
+      lines.push(parts.join(" "));
+    } else if (item.note) {
+      lines.push(item.note);
+    }
+  }
+
+  return lines.join("\n").trim();
+}
+
+function resolvePlanText(phase: PlanPhase): string {
+  if (phase.planText?.trim()) return phase.planText.trim();
+  if (phase.note?.trim() && !phase.plannedSeries?.length) return phase.note.trim();
+
+  const fromSeries = plannedSeriesToPlanText(
+    Array.isArray(phase.plannedSeries) ? phase.plannedSeries : []
+  );
+  if (fromSeries) return fromSeries;
+
+  return phase.note?.trim() ?? "";
+}
+
+export function getDayPlanPhase(phases: PlanPhase[], date: string): PlanPhase | null {
+  const dayPhases = getPhasesForDate(phases, date);
+  return dayPhases.find((phase) => phase.type === "training") ?? null;
+}
+
+export function getDayPlanText(phases: PlanPhase[], date: string): string {
+  const phase = getDayPlanPhase(phases, date);
+  if (!phase) return "";
+  return resolvePlanText(phase);
+}
+
+export function hasDayPlan(phases: PlanPhase[], date: string): boolean {
+  return getDayPlanText(phases, date).trim().length > 0;
+}
+
+export function setDayPlanText(phases: PlanPhase[], date: string, text: string): PlanPhase[] {
+  const existing = getDayPlanPhase(phases, date);
+  const trimmed = text;
+
+  if (!trimmed.trim()) {
+    if (!existing) return phases;
+    return phases.filter((phase) => phase.id !== existing.id);
+  }
+
+  if (existing) {
+    return phases.map((phase) =>
+      phase.id === existing.id
+        ? normalizePhase({
+            ...phase,
+            planText: trimmed,
+            plannedSeries: [],
+            note: "",
+            title: phase.title.trim() || "Trénink",
+          })
+        : phase
+    );
+  }
+
+  return [
+    ...phases,
+    normalizePhase({
+      ...emptyPhase(date),
+      planText: trimmed,
+      title: "Trénink",
+    }),
+  ];
+}
+
 export function normalizePhase(phase: PlanPhase): PlanPhase {
   const plannedSeries = Array.isArray(phase.plannedSeries) ? phase.plannedSeries : [];
+  const planText =
+    phase.planText?.trim() ||
+    (plannedSeries.length > 0 ? plannedSeriesToPlanText(plannedSeries) : "") ||
+    phase.note?.trim() ||
+    "";
 
   return {
     ...phase,
@@ -192,9 +292,8 @@ export function normalizePhase(phase: PlanPhase): PlanPhase {
     title: phase.title ?? "",
     type: isPhaseType(phase.type) ? phase.type : "training",
     disciplines: Array.isArray(phase.disciplines) ? phase.disciplines : [],
-    plannedSeries: plannedSeries.length
-      ? plannedSeries.map((series) => normalizePlannedSeries(series))
-      : [emptyPlannedSeries()],
+    plannedSeries: plannedSeries.map((series) => normalizePlannedSeries(series)),
+    planText,
     goal: phase.goal ?? "",
     note: phase.note ?? "",
     status: isPhaseStatus(phase.status) ? phase.status : "planned",
@@ -204,12 +303,72 @@ export function normalizePhase(phase: PlanPhase): PlanPhase {
   };
 }
 
+export function convertDayPlanToTraining(
+  phases: PlanPhase[],
+  date: string
+): {
+  session: TrainingSession | null;
+  updatedPhases: PlanPhase[];
+} {
+  const planText = getDayPlanText(phases, date);
+  if (!planText.trim()) {
+    return { session: null, updatedPhases: phases };
+  }
+
+  const phase = getDayPlanPhase(phases, date);
+  const sessionId = uid();
+  const parsedSeries = parsePlanTextToSeries(planText);
+  const disciplineSet = new Set(parsedSeries.map((item) => item.discipline).filter(Boolean));
+
+  const session = normalizeSession({
+    id: sessionId,
+    date,
+    title: phase?.title.trim() || "Trénink podle plánu",
+    location: "",
+    weather: "",
+    readiness: 70,
+    rpe: 5,
+    note: "",
+    disciplines: [...disciplineSet],
+    sessionType: phase?.type ?? "training",
+    series: parsedSeries,
+    createdAt: new Date().toISOString(),
+    createdFromPlanId: phase?.id,
+  });
+
+  if (!phase) {
+    return { session, updatedPhases: phases };
+  }
+
+  const updatedPhases = phases.map((item) =>
+    item.id === phase.id
+      ? normalizePhase({
+          ...item,
+          status: item.status === "planned" ? "started" : item.status,
+          lastTrainingId: sessionId,
+        })
+      : item
+  );
+
+  return { session, updatedPhases };
+}
+
 export function convertPhaseToTraining(phase: PlanPhase): {
   session: TrainingSession;
   updatedPhase: PlanPhase;
 } {
+  const planText = resolvePlanText(phase);
   const sessionId = uid();
-  const plannedSeries = Array.isArray(phase.plannedSeries) ? phase.plannedSeries : [];
+  const parsedSeries = planText
+    ? parsePlanTextToSeries(planText)
+    : (Array.isArray(phase.plannedSeries) ? phase.plannedSeries : []).map((s) =>
+        normalizeSeries(plannedSeriesToTrainingSeries(s))
+      );
+
+  const disciplineSet = new Set<string>(phase.disciplines);
+  parsedSeries.forEach((item) => {
+    if (item.discipline) disciplineSet.add(item.discipline);
+  });
 
   const session = normalizeSession({
     id: sessionId,
@@ -220,10 +379,10 @@ export function convertPhaseToTraining(phase: PlanPhase): {
     readiness: 70,
     rpe: 5,
     note: phase.note ?? "",
-    disciplines: [...phase.disciplines],
+    disciplines: [...disciplineSet],
     sessionType: phase.type,
-    series: plannedSeries.length
-      ? plannedSeries.map((s) => normalizeSeries(plannedSeriesToTrainingSeries(s)))
+    series: parsedSeries.length
+      ? parsedSeries
       : [normalizeSeries(plannedSeriesToTrainingSeries(emptyPlannedSeries()))],
     createdAt: new Date().toISOString(),
     createdFromPlanId: phase.id,
@@ -247,76 +406,14 @@ export function getTodayActivePlanPhases(phases: PlanPhase[]): PlanPhase[] {
 }
 
 export function hasTodayActivePlan(phases: PlanPhase[]): boolean {
-  return getTodayActivePlanPhases(phases).length > 0;
+  return hasDayPlan(phases, todayISO());
 }
 
 export function convertTodayPlanToTraining(phases: PlanPhase[]): {
   session: TrainingSession | null;
   updatedPhases: PlanPhase[];
 } {
-  const todayPhases = getTodayActivePlanPhases(phases);
-  if (todayPhases.length === 0) {
-    return { session: null, updatedPhases: phases };
-  }
-
-  if (todayPhases.length === 1) {
-    const { session, updatedPhase } = convertPhaseToTraining(todayPhases[0]);
-    return {
-      session,
-      updatedPhases: phases.map((phase) =>
-        phase.id === updatedPhase.id ? updatedPhase : phase
-      ),
-    };
-  }
-
-  const sessionId = uid();
-  const mergedSeries = todayPhases.flatMap((phase) =>
-    phase.plannedSeries
-      .filter((item) => item.discipline || item.technique || item.throwCount > 0)
-      .map((item) => normalizeSeries(plannedSeriesToTrainingSeries(item)))
-  );
-
-  const disciplineSet = new Set<string>();
-  for (const phase of todayPhases) {
-    if (phase.disciplines.length > 0) {
-      phase.disciplines.forEach((item) => disciplineSet.add(item));
-    } else {
-      phase.plannedSeries.forEach((item) => {
-        if (item.discipline) disciplineSet.add(item.discipline);
-      });
-    }
-  }
-
-  const titles = todayPhases.map((phase) => phase.title.trim()).filter(Boolean);
-  const notes = todayPhases.map((phase) => phase.note.trim()).filter(Boolean);
-
-  const session = normalizeSession({
-    id: sessionId,
-    date: todayISO(),
-    title: titles.join(" · ") || "Trénink podle plánu",
-    location: "",
-    weather: "",
-    readiness: 70,
-    rpe: 5,
-    note: notes.join("\n"),
-    disciplines: [...disciplineSet],
-    sessionType: todayPhases[0].type,
-    series: mergedSeries,
-    createdAt: new Date().toISOString(),
-    createdFromPlanId: todayPhases[0].id,
-  });
-
-  const todayPhaseIds = new Set(todayPhases.map((phase) => phase.id));
-  const updatedPhases = phases.map((phase) => {
-    if (!todayPhaseIds.has(phase.id)) return phase;
-    return normalizePhase({
-      ...phase,
-      status: phase.status === "planned" ? "started" : phase.status,
-      lastTrainingId: sessionId,
-    });
-  });
-
-  return { session, updatedPhases };
+  return convertDayPlanToTraining(phases, todayISO());
 }
 
 export function loadPlans(): PlanPhase[] {
@@ -381,14 +478,13 @@ export function duplicatePhase(phase: PlanPhase, date?: string): PlanPhase {
 }
 
 export function getTodayPhaseSummary(phases: PlanPhase[]): string | null {
-  const todayPhases = getPhasesForDate(phases, todayISO());
-  if (todayPhases.length === 0) return null;
+  const planText = getDayPlanText(phases, todayISO());
+  if (!planText.trim()) return null;
 
-  const titles = todayPhases
-    .map((phase) => phase.title.trim())
-    .filter(Boolean);
+  const firstLine = planText.split(/\r?\n/).find((line) => line.trim())?.trim();
+  if (!firstLine) return "Plán na dnešek";
 
-  return titles.length > 0 ? titles.join(" · ") : `${todayPhases.length} fáze`;
+  return firstLine.length > 48 ? `${firstLine.slice(0, 45)}…` : firstLine;
 }
 
 /** @deprecated use getTodayPhaseSummary */

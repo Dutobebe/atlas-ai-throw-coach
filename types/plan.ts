@@ -31,6 +31,8 @@ export interface PlanPhase {
   type: PhaseType;
   disciplines: string[];
   plannedSeries: PlannedSeries[];
+  /** Free-text daily plan (note-style) */
+  planText: string;
   goal: string;
   note: string;
   status: PhaseStatus;

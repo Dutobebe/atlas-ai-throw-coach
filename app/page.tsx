@@ -9,7 +9,6 @@ import { APP_VERSION_LABEL } from "@/lib/app-version";
 import DisciplineThrowsTable from "@/components/statistics/DisciplineThrowsTable";
 import PerformanceModule from "@/components/performance/PerformanceModule";
 import SeasonModule from "@/components/season/SeasonModule";
-import QuickCaptureScreen from "@/components/quick-capture/QuickCaptureScreen";
 import SummaryCards from "@/components/common/SummaryCards";
 import SectionCard from "@/components/common/SectionCard";
 import SectionTitle from "@/components/common/SectionTitle";
@@ -48,7 +47,8 @@ import {
   saveLiveTrainingMeta,
   type LiveTrainingMeta,
 } from "@/lib/live-training-utils";
-import { convertPhaseToTraining, loadPlans, normalizePhase, PLANS_STORAGE_KEY } from "@/lib/plan-utils";
+import { getDayPlanText, hasDayPlan, loadPlans, normalizePhase, PLANS_STORAGE_KEY } from "@/lib/plan-utils";
+import { parsePlanTextToSeries } from "@/lib/plan-text-parser";
 import {
   getNextCompetition,
   loadSeasons,
@@ -56,13 +56,6 @@ import {
   SEASONS_STORAGE_KEY,
 } from "@/lib/season-utils";
 import { loadTemplates } from "@/lib/template-utils";
-import {
-  appendQuickCaptureSeries,
-  FAVOURITES_STORAGE_KEY,
-  loadFavourites,
-  normalizeFavourite,
-} from "@/lib/quick-capture-utils";
-import type { FavouriteSeries, QuickCaptureDraft } from "@/types/quick-capture";
 import type { Tab, TrainingSession } from "@/types/training";
 import type { PlanPhase } from "@/types/plan";
 import type { Season } from "@/types/season";
@@ -98,7 +91,6 @@ export default function Home() {
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [phases, setPhases] = useState<PlanPhase[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
-  const [favourites, setFavourites] = useState<FavouriteSeries[]>([]);
   const [templates, setTemplates] = useState<TrainingTemplate[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [draft, setDraft] = useState<TrainingSession>(() => emptySession());
@@ -119,7 +111,6 @@ export default function Home() {
     setSessions(loadedSessions);
     setPhases(loadPlans());
     setSeasons(loadSeasons());
-    setFavourites(loadFavourites());
     setTemplates(loadTemplates());
     setProfileName(loadProfileName());
     setWelcomeComplete(loadWelcomeComplete());
@@ -167,14 +158,6 @@ export default function Home() {
       JSON.stringify(seasons.map(normalizeSeason))
     );
   }, [seasons, loaded]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    localStorage.setItem(
-      FAVOURITES_STORAGE_KEY,
-      JSON.stringify(favourites.map(normalizeFavourite))
-    );
-  }, [favourites, loaded]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -240,14 +223,33 @@ export default function Home() {
     openTrainingWizard();
   }
 
-  function startQuickCapture() {
-    setTab("quickCapture");
+  function importDayPlanToDraft() {
+    const planText = getDayPlanText(phases, draft.date);
+    if (!planText.trim()) {
+      showToast("Pro tento den není plán");
+      return;
+    }
+
+    const series = parsePlanTextToSeries(planText);
+    const disciplineSet = new Set(draft.disciplines);
+    series.forEach((item) => {
+      if (item.discipline) disciplineSet.add(item.discipline);
+    });
+
+    setDraft({
+      ...draft,
+      series,
+      disciplines: [...disciplineSet],
+    });
+    showToast("Plán dne načten — série lze upravit");
   }
 
-  function saveQuickCapture(draft: QuickCaptureDraft) {
-    const { sessions: nextSessions } = appendQuickCaptureSeries(sessions, draft);
-    setSessions(nextSessions);
-    showToast("Série uložena");
+  function startLiveRecordingFromDraft() {
+    if (draft.series.length === 0) {
+      showToast("Nejdřív přidej série nebo načti plán dne");
+      return;
+    }
+    startActiveTraining(draft);
   }
 
   function startEdit(session: TrainingSession) {
@@ -319,22 +321,11 @@ export default function Home() {
       setSessions([]);
       setPhases([]);
       setSeasons([]);
-      setFavourites([]);
       setViewSession(null);
       setDraft(emptySession());
       setEditingId(null);
       showToast("Data smazána");
     }
-  }
-
-  function startTrainingFromPhase(phase: PlanPhase) {
-    const { session, updatedPhase } = convertPhaseToTraining(phase);
-
-    setPhases((prev) =>
-      prev.map((item) => (item.id === phase.id ? updatedPhase : item))
-    );
-    startActiveTraining(session);
-    showToast("Aktivní trénink zahájen");
   }
 
   function updateActiveSession(session: TrainingSession) {
@@ -369,13 +360,30 @@ export default function Home() {
     setTab("history");
   }
 
-  function cancelActiveTraining() {
+  function exitActiveTraining() {
+    clearLiveTrainingMeta();
+    setLiveMeta(null);
+    setTab("dashboard");
+  }
+
+  function discardActiveTraining() {
     if (liveMeta) {
       setSessions((prev) => prev.filter((s) => s.id !== liveMeta.sessionId));
     }
     clearLiveTrainingMeta();
     setLiveMeta(null);
     setTab("dashboard");
+    showToast("Trénink zrušen");
+  }
+
+  function autoSaveActiveSession(session: TrainingSession) {
+    setSessions((prev) => {
+      const exists = prev.some((s) => s.id === session.id);
+      if (exists) {
+        return prev.map((s) => (s.id === session.id ? session : s));
+      }
+      return [...prev, session];
+    });
   }
 
   const liveSession = useMemo(() => {
@@ -402,6 +410,11 @@ export default function Home() {
     setTab(newTab);
   }
 
+  const draftHasDayPlan = useMemo(
+    () => hasDayPlan(phases, draft.date),
+    [phases, draft.date]
+  );
+
   function renderDashboard() {
     return (
       <Dashboard
@@ -412,7 +425,6 @@ export default function Home() {
         nextCompetition={nextCompetition}
         profileName={profileName || undefined}
         onStartTraining={startNewTraining}
-        onQuickCapture={startQuickCapture}
         onOpenSeason={() => setTab("season")}
         onViewSession={(session) => {
           setViewSession(session);
@@ -659,16 +671,13 @@ export default function Home() {
             planEntryKey={planEntryKey}
             phases={phases}
             seasons={seasons}
-            templates={templates}
             onPhasesChange={setPhases}
-            onStartTrainingFromPhase={startTrainingFromPhase}
             onCompetitionClick={(competition) => {
               const year = Number(competition.date.slice(0, 4)) || new Date().getFullYear();
               setSeasonFocusYear(year);
               setSeasonFocusCompetitionId(competition.id);
               setTab("season");
             }}
-            onToast={showToast}
           />
         );
       case "season":
@@ -685,16 +694,6 @@ export default function Home() {
             }}
           />
         );
-      case "quickCapture":
-        return (
-          <QuickCaptureScreen
-            sessions={sessions}
-            favourites={favourites}
-            onFavouritesChange={setFavourites}
-            onSave={saveQuickCapture}
-            onClose={() => setTab("dashboard")}
-          />
-        );
       case "training":
         return (
           <TrainingModule
@@ -703,6 +702,9 @@ export default function Home() {
             isEditing={editingId !== null}
             templates={templates}
             autoStartWizard={trainingAutoStart}
+            hasDayPlan={draftHasDayPlan}
+            onImportDayPlan={importDayPlanToDraft}
+            onStartLiveRecording={startLiveRecordingFromDraft}
             hasActiveTraining={Boolean(liveMeta)}
             onChange={setDraft}
             onSave={saveSession}
@@ -725,8 +727,10 @@ export default function Home() {
             meta={liveMeta}
             onSessionChange={updateActiveSession}
             onMetaChange={setLiveMeta}
+            onAutoSave={autoSaveActiveSession}
             onSave={saveActiveSession}
-            onExit={cancelActiveTraining}
+            onExit={exitActiveTraining}
+            onDiscard={discardActiveTraining}
           />
         ) : null;
       case "evaluation":
@@ -794,15 +798,11 @@ export default function Home() {
         </div>
       </header>
 
-      <main
-        className={`app-main${
-          tab === "evaluation" || tab === "quickCapture" ? " app-main-live" : ""
-        }`}
-      >
+      <main className={`app-main${tab === "evaluation" ? " app-main-live" : ""}`}>
         {renderContent()}
       </main>
 
-      {tab !== "evaluation" && tab !== "quickCapture" && tab !== "profile" && (
+      {tab !== "evaluation" && tab !== "profile" && (
         <BottomNavigation
           activeTab={tab === "live" ? "training" : tab}
           onTabChange={handleTabChange}

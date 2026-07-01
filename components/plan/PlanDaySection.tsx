@@ -8,23 +8,19 @@ import {
   DAY_STATUS_LABELS,
   plannerEventsHaveCompetition,
   resolveCompetitionFromEvent,
-  resolvePlanPhaseFromEvent,
 } from "@/lib/planner";
+import { getDayPlanText } from "@/lib/plan-utils";
 import { getWeekdayFullName } from "@/lib/plan-display-utils";
-import { planDayDropDataAttributes, createPlanPhaseDropTarget } from "@/components/plan/dnd/plan-dnd-utils";
 import type { PlanPhase } from "@/types/plan";
 import type { WeekDay } from "@/lib/plan-utils";
 import type { Competition, Season } from "@/types/season";
-import PlanPhaseCard from "./PlanPhaseCard";
 
 interface PlanDaySectionProps {
   day: WeekDay;
   phases: PlanPhase[];
   seasons: Season[];
-  getPrepLabel: (competitionPrepId?: string) => string | null;
-  onPhaseClick: (phase: PlanPhase) => void;
+  onPlanTextChange: (date: string, text: string) => void;
   onCompetitionClick?: (competition: Competition) => void;
-  onAddPhase: (date: string) => void;
   sectionRef?: (el: HTMLElement | null) => void;
 }
 
@@ -32,10 +28,8 @@ export default function PlanDaySection({
   day,
   phases,
   seasons,
-  getPrepLabel,
-  onPhaseClick,
+  onPlanTextChange,
   onCompetitionClick,
-  onAddPhase,
   sectionRef,
 }: PlanDaySectionProps) {
   const events = useMemo(
@@ -43,19 +37,16 @@ export default function PlanDaySection({
     [day.iso, phases, seasons]
   );
 
+  const planText = useMemo(() => getDayPlanText(phases, day.iso), [phases, day.iso]);
   const dayStatus = useMemo(() => calculateDayStatus(events), [events]);
-  const hasContent = events.length > 0;
   const hasCompetition = plannerEventsHaveCompetition(events);
-  const dropAttrs = planDayDropDataAttributes(createPlanPhaseDropTarget(day.iso));
-
-  let phaseIndex = 0;
+  const competitionEvents = events.filter((event) => event.source.type === "competition");
 
   return (
     <section
       id={`plan-day-${day.iso}`}
       ref={sectionRef}
       className={`plan-day-section${day.isToday ? " plan-day-section-today" : ""}`}
-      {...dropAttrs}
       data-plan-day-section="true"
       data-day-status={dayStatus}
     >
@@ -70,53 +61,35 @@ export default function PlanDaySection({
         )}
       </header>
 
-      {!hasContent ? (
-        <button
-          type="button"
-          className="plan-day-add-empty"
-          onClick={() => onAddPhase(day.iso)}
-        >
-          + Přidat trénink
-        </button>
-      ) : (
-        <div className="plan-day-section-content">
-          {events.map((event) => {
-            if (event.source.type === "competition") {
-              const competition = resolveCompetitionFromEvent(event, seasons);
-              if (!competition) return null;
-              return (
-                <CompetitionCard
-                  key={event.id}
-                  competition={competition}
-                  onClick={onCompetitionClick}
-                />
-              );
-            }
-
-            const phase = resolvePlanPhaseFromEvent(event, phases);
-            if (!phase) return null;
-            const index = phaseIndex;
-            phaseIndex += 1;
-
+      {competitionEvents.length > 0 && (
+        <div className="plan-day-section-content plan-day-competitions">
+          {competitionEvents.map((event) => {
+            const competition = resolveCompetitionFromEvent(event, seasons);
+            if (!competition) return null;
             return (
-              <PlanPhaseCard
+              <CompetitionCard
                 key={event.id}
-                phase={phase}
-                phaseIndex={index}
-                prepLabel={getPrepLabel(phase.competitionPrepId)}
-                onClick={onPhaseClick}
+                competition={competition}
+                onClick={onCompetitionClick}
               />
             );
           })}
-          <button
-            type="button"
-            className="plan-day-add-link"
-            onClick={() => onAddPhase(day.iso)}
-          >
-            + Přidat trénink
-          </button>
         </div>
       )}
+
+      <div className="plan-day-text-wrap">
+        <label className="form-label plan-day-text-label" htmlFor={`plan-text-${day.iso}`}>
+          Plán tréninku
+        </label>
+        <textarea
+          id={`plan-text-${day.iso}`}
+          className="form-input plan-day-textarea"
+          rows={6}
+          placeholder={`Kladivo:\n6kg 2/2 8 hodů\n7,26kg 2/1 6 hodů\n\nDisk:\n1,5kg z místa 8 hodů`}
+          value={planText}
+          onChange={(e) => onPlanTextChange(day.iso, e.target.value)}
+        />
+      </div>
     </section>
   );
 }

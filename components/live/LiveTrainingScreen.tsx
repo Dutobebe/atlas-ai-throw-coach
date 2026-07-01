@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SectionCard from "@/components/common/SectionCard";
 import DisciplineBadge from "@/components/common/DisciplineBadge";
 import IntensityBadge from "@/components/common/IntensityBadge";
@@ -32,18 +32,19 @@ interface LiveTrainingScreenProps {
   meta: LiveTrainingMeta;
   onSessionChange: (session: TrainingSession) => void;
   onMetaChange: (meta: LiveTrainingMeta) => void;
+  onAutoSave: (session: TrainingSession) => void;
   onSave: (session: TrainingSession) => void;
   onExit: () => void;
+  onDiscard: () => void;
 }
 
-function persistChange(
-  session: TrainingSession,
-  meta: LiveTrainingMeta,
-  onSessionChange: (s: TrainingSession) => void,
-  onMetaChange: (m: LiveTrainingMeta) => void
-) {
-  onSessionChange(session);
-  onMetaChange(meta);
+function LiveSaveStatus({ state }: { state: "idle" | "saving" | "saved" }) {
+  if (state === "idle") return null;
+  return (
+    <p className="live-save-status" aria-live="polite">
+      {state === "saving" ? "Ukládám…" : "Uloženo"}
+    </p>
+  );
 }
 
 export default function LiveTrainingScreen({
@@ -51,8 +52,10 @@ export default function LiveTrainingScreen({
   meta,
   onSessionChange,
   onMetaChange,
+  onAutoSave,
   onSave,
   onExit,
+  onDiscard,
 }: LiveTrainingScreenProps) {
   const totalSeries = session.series.length;
   const currentIndex = Math.min(meta.currentSeriesIndex, Math.max(0, totalSeries - 1));
@@ -60,8 +63,37 @@ export default function LiveTrainingScreen({
   const targetThrows = meta.seriesTargets[currentIndex] ?? 0;
   const [bestThrowInput, setBestThrowInput] = useState("");
   const [addingSeries, setAddingSeries] = useState<TrainingSeries | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const throwTotal = countLiveSessionThrows(session);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
+
+  function persistChange(
+    nextSession: TrainingSession,
+    nextMeta: LiveTrainingMeta,
+    options?: { completedSeries?: boolean }
+  ) {
+    onSessionChange(nextSession);
+    onMetaChange(nextMeta);
+    setSaveState("saving");
+    onAutoSave(syncSessionForStorage(nextSession));
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      setSaveState("saved");
+    }, 150);
+
+    if (options?.completedSeries) {
+      setSaveState("saving");
+      onAutoSave(syncSessionForStorage(nextSession));
+    }
+  }
 
   function updateSeriesThrowCount(delta: number) {
     if (!currentSeries) return;
@@ -72,11 +104,11 @@ export default function LiveTrainingScreen({
         throwCount: Math.max(0, item.throwCount + delta),
       };
     });
-    persistChange({ ...session, series: nextSeries }, meta, onSessionChange, onMetaChange);
+    persistChange({ ...session, series: nextSeries }, meta);
   }
 
   function goToStep(step: LiveTrainingMeta["step"]) {
-    persistChange(session, { ...meta, step }, onSessionChange, onMetaChange);
+    persistChange(session, { ...meta, step });
   }
 
   function advanceToNextSeries() {
@@ -85,8 +117,7 @@ export default function LiveTrainingScreen({
       persistChange(
         session,
         { ...meta, step: "summary", currentSeriesIndex: currentIndex },
-        onSessionChange,
-        onMetaChange
+        { completedSeries: true }
       );
       setBestThrowInput("");
       return;
@@ -94,8 +125,7 @@ export default function LiveTrainingScreen({
     persistChange(
       session,
       { ...meta, currentSeriesIndex: nextIndex, step: "series" },
-      onSessionChange,
-      onMetaChange
+      { completedSeries: true }
     );
     setBestThrowInput("");
   }
@@ -120,15 +150,13 @@ export default function LiveTrainingScreen({
       persistChange(
         nextSession,
         { ...meta, step: "summary", currentSeriesIndex: currentIndex },
-        onSessionChange,
-        onMetaChange
+        { completedSeries: true }
       );
     } else {
       persistChange(
         nextSession,
         { ...meta, currentSeriesIndex: nextIndex, step: "series" },
-        onSessionChange,
-        onMetaChange
+        { completedSeries: true }
       );
     }
     setBestThrowInput("");
@@ -157,7 +185,7 @@ export default function LiveTrainingScreen({
       currentSeriesIndex: session.series.length,
       step: "series",
     };
-    persistChange(nextSession, nextMeta, onSessionChange, onMetaChange);
+    persistChange(nextSession, nextMeta);
     setAddingSeries(null);
   }
 
@@ -168,6 +196,7 @@ export default function LiveTrainingScreen({
           ← Zpět
         </button>
         <ActiveTrainingHeader session={session} throwTotal={throwTotal} seriesCount={totalSeries} />
+        <LiveSaveStatus state={saveState} />
         <TrainingSeriesCard
           series={addingSeries}
           index={totalSeries}
@@ -193,6 +222,7 @@ export default function LiveTrainingScreen({
           ← Zpět
         </button>
         <ActiveTrainingHeader session={session} throwTotal={0} seriesCount={0} />
+        <LiveSaveStatus state={saveState} />
         <button type="button" className="btn btn-primary active-training-add-first" onClick={startAddSeries}>
           + Přidat první sérii
         </button>
@@ -215,6 +245,7 @@ export default function LiveTrainingScreen({
           ← Zpět
         </button>
         <ActiveTrainingHeader session={session} throwTotal={throwTotal} seriesCount={totalSeries} />
+        <LiveSaveStatus state={saveState} />
 
         <div className="live-progress-header">
           <span className="live-progress-label">Trénink dokončen</span>
@@ -227,7 +258,7 @@ export default function LiveTrainingScreen({
           <RPESelector
             value={session.rpe}
             onChange={(rpe) =>
-              persistChange({ ...session, rpe }, meta, onSessionChange, onMetaChange)
+              persistChange({ ...session, rpe }, meta)
             }
           />
         </SectionCard>
@@ -235,7 +266,7 @@ export default function LiveTrainingScreen({
         <button type="button" className="btn btn-primary live-save-btn" onClick={handleSaveFinal}>
           Uložit trénink
         </button>
-        <button type="button" className="btn btn-secondary" onClick={onExit}>
+        <button type="button" className="btn btn-secondary" onClick={onDiscard}>
           Zrušit bez uložení
         </button>
       </div>
@@ -249,6 +280,7 @@ export default function LiveTrainingScreen({
           ← Zpět
         </button>
         <ActiveTrainingHeader session={session} throwTotal={throwTotal} seriesCount={totalSeries} />
+        <LiveSaveStatus state={saveState} />
 
         <div className="live-progress-header">
           <span className="live-progress-label">
@@ -293,6 +325,7 @@ export default function LiveTrainingScreen({
           ← Zpět
         </button>
         <ActiveTrainingHeader session={session} throwTotal={throwTotal} seriesCount={totalSeries} />
+        <LiveSaveStatus state={saveState} />
         <button type="button" className="btn btn-primary active-training-add-first" onClick={startAddSeries}>
           + Přidat první sérii
         </button>
@@ -309,6 +342,7 @@ export default function LiveTrainingScreen({
         ← Zpět
       </button>
       <ActiveTrainingHeader session={session} throwTotal={throwTotal} seriesCount={totalSeries} />
+      <LiveSaveStatus state={saveState} />
 
       <div className="live-progress-header">
         <span className="live-progress-label">

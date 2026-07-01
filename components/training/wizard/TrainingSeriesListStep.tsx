@@ -11,6 +11,9 @@ import TrainingSeriesSummaryCard from "@/components/training/TrainingSeriesSumma
 interface TrainingSeriesListStepProps {
   session: TrainingSession;
   templates: TrainingTemplate[];
+  hasDayPlan: boolean;
+  onImportDayPlan: () => void;
+  onStartLiveRecording: () => void;
   onChange: (session: TrainingSession) => void;
   onEditSeries: (index: number) => void;
 }
@@ -18,6 +21,9 @@ interface TrainingSeriesListStepProps {
 export default function TrainingSeriesListStep({
   session,
   templates,
+  hasDayPlan,
+  onImportDayPlan,
+  onStartLiveRecording,
   onChange,
   onEditSeries,
 }: TrainingSeriesListStepProps) {
@@ -35,14 +41,26 @@ export default function TrainingSeriesListStep({
         <h2 className="training-wizard-step-title" style={{ marginBottom: 0 }}>
           Série ({session.series.length})
         </h2>
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          style={{ width: "auto" }}
-          onClick={() => setTemplateOpen(true)}
-        >
-          Šablona
-        </button>
+        <div className="training-series-list-actions">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ width: "auto" }}
+            onClick={onImportDayPlan}
+            disabled={!hasDayPlan}
+            title={hasDayPlan ? undefined : "Pro zvolené datum není v plánu žádný text"}
+          >
+            Převzít plán dne
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ width: "auto" }}
+            onClick={() => setTemplateOpen(true)}
+          >
+            Šablona
+          </button>
+        </div>
       </div>
 
       <TemplatePicker
@@ -76,6 +94,16 @@ export default function TrainingSeriesListStep({
       >
         {session.series.length === 0 ? "+ Přidat první sérii" : "+ Přidat sérii"}
       </button>
+
+      {session.series.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-secondary training-start-live-btn"
+          onClick={onStartLiveRecording}
+        >
+          ▶ Spustit záznam tréninku
+        </button>
+      )}
     </div>
   );
 }

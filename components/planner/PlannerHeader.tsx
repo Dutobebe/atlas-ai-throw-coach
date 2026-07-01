@@ -9,7 +9,6 @@ export interface PlannerHeaderProps {
   onPrevious: () => void;
   onNext: () => void;
   onToday: () => void;
-  onAddTraining: () => void;
 }
 
 export default function PlannerHeader({
@@ -19,7 +18,6 @@ export default function PlannerHeader({
   onPrevious,
   onNext,
   onToday,
-  onAddTraining,
 }: PlannerHeaderProps) {
   return (
     <header className="planner-header">
@@ -51,9 +49,6 @@ export default function PlannerHeader({
       <div className="planner-header-actions">
         <button type="button" className="planner-header-today-btn" onClick={onToday}>
           Dnes
-        </button>
-        <button type="button" className="planner-header-add-btn" onClick={onAddTraining}>
-          + Přidat trénink
         </button>
       </div>
 
